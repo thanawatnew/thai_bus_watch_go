@@ -32,9 +32,14 @@ func main() {
 		listen = ":" + port
 	}
 
+	publicURL := os.Getenv("SELF_URL")
+	if publicURL == "" {
+		publicURL = os.Getenv("RENDER_EXTERNAL_URL")
+	}
+
 	tg := NewTelegram(os.Getenv("TELEGRAM_BOT_TOKEN"), os.Getenv("TELEGRAM_CHAT_ID"))
 	if tg.Configured() {
-		go tg.RunUpdatePoller(context.Background())
+		go tg.Init(context.Background(), publicURL)
 	} else {
 		log.Println("TELEGRAM_BOT_TOKEN not set — notifications disabled, map still works")
 	}

@@ -20,6 +20,9 @@ const (
 	watchMaxMisses     = 15 // consecutive polls without the bus before giving up (~5 min)
 	keepAliveInterval  = 5 * time.Minute
 	liveLocationPeriod = 0x7FFFFFFF // Telegram magic value: live until explicitly stopped
+
+	cameraPassRadiusM = 130              // bus within this distance of a camera → snapshot
+	cameraCooldown    = 10 * time.Minute // per camera per watch
 )
 
 type AlertPoint struct {
@@ -57,6 +60,7 @@ type Watch struct {
 	alertFired bool
 	misses     int
 	everSeen   bool
+	cameraSent map[string]time.Time // camera ID -> last snapshot sent
 	cancel     context.CancelFunc
 }
 
@@ -292,6 +296,8 @@ func (m *WatchManager) poll(ctx context.Context, w *Watch) bool {
 		}
 	}
 
+	go m.checkCameraPass(w, lat, lon)
+
 	if w.Alert != nil && !alertFired {
 		dist := HaversineMeters(lat, lon, w.Alert.Lat, w.Alert.Lon)
 		if dist <= w.Alert.RadiusM {
@@ -321,6 +327,67 @@ func (m *WatchManager) poll(ctx context.Context, w *Watch) bool {
 	}
 
 	return false
+}
+
+// checkCameraPass sends a traffic-camera snapshot to Telegram when the bus
+// passes close to a BMA camera — with an optional Claude vision verdict on
+// whether the bus is actually visible in the frame. Runs in its own goroutine
+// so slow camera/AI calls never delay the tracking loop.
+func (m *WatchManager) checkCameraPass(w *Watch, lat, lon float64) {
+	if !m.tg.Ready() {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+
+	cameras, err := GetBMACameras(ctx)
+	if err != nil || len(cameras) == 0 {
+		return
+	}
+	cam, dist := NearestCamera(lat, lon, cameras)
+	if dist > cameraPassRadiusM {
+		return
+	}
+
+	w.mu.Lock()
+	if w.cameraSent == nil {
+		w.cameraSent = map[string]time.Time{}
+	}
+	if time.Since(w.cameraSent[cam.ID]) < cameraCooldown {
+		w.mu.Unlock()
+		return
+	}
+	w.cameraSent[cam.ID] = time.Now()
+	w.mu.Unlock()
+
+	frame, err := GetCameraFrame(ctx, cam.ID)
+	if err != nil {
+		log.Printf("watch %s: camera %s frame failed: %v", w.ID, cam.ID, err)
+		return
+	}
+
+	caption := fmt.Sprintf("🎥 Bus %s should be passing camera %s now (%.0f m away)\n%s",
+		w.BusID, cam.ID, dist, orDefault(cam.NameTH, cam.NameEN))
+
+	if aiEnabled() {
+		if v, err := CheckCameraForBus(ctx, frame, w.RouteName, w.Headsign, w.fullBusID); err == nil {
+			verdict := map[string]string{"yes": "✅ likely your bus", "no": "❌ doesn't look like your bus", "unsure": "🤔 can't tell"}[v.LikelyMatch]
+			if verdict == "" {
+				verdict = "🤔 can't tell"
+			}
+			if !v.BusVisible {
+				verdict = "🚫 no bus visible in frame"
+			}
+			caption += fmt.Sprintf("\n\n🤖 AI check: %s\n%s", verdict, v.Description)
+		} else {
+			log.Printf("watch %s: AI camera check failed: %v", w.ID, err)
+		}
+	}
+
+	if err := m.tg.SendPhoto(ctx, frame, caption); err != nil {
+		log.Printf("watch %s: camera photo send failed: %v", w.ID, err)
+	}
 }
 
 // keepAliveLoop pings our own public URL while watches are active so that

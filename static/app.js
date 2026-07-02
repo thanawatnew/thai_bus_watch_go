@@ -108,7 +108,12 @@ async function refreshTelegram() {
 }
 
 function telegramSetupHTML() {
-  if (state.tg.connected) return "";
+  if (state.tg.connected) {
+    if (state.tg.chatPinned || !state.tg.chatId) return "";
+    return `<div class="tg-setup">💡 Telegram is connected, but the link is lost when the
+      server restarts. To make it permanent, add <code>TELEGRAM_CHAT_ID=${esc(state.tg.chatId)}</code>
+      in Render → Environment.</div>`;
+  }
   if (!state.tg.configured) {
     return `<div class="tg-setup">⚠️ <b>Notifications are off.</b> The server has no
       <code>TELEGRAM_BOT_TOKEN</code>. You can still watch buses on the map.</div>`;
@@ -326,13 +331,17 @@ async function selectBus(busId) {
   detail.innerHTML = `<h2>Bus ${esc(plate)}</h2><small>Loading details…</small>`;
 
   let camHTML = "";
+  let camId = null;
   try {
     const d = await api(`/api/bus?trip=${encodeURIComponent(state.tripId)}&bus=${encodeURIComponent(plate)}`);
     if (d.nearestCamera) {
+      camId = d.nearestCamera.id;
       camHTML = `
-        <dt>🎥 Camera</dt><dd>${esc(d.nearestCamera.name_th || d.nearestCamera.name_en || d.nearestCamera.id)}
-          <small>(${Math.round(d.cameraDistanceM)} m away)</small><br>
-          <a href="${esc(d.nearestCamera.feed_url)}" target="_blank" style="color:#7fb8ff">Open traffic camera feed ↗</a></dd>`;
+        <h2>🎥 Nearest traffic camera <small>· ${Math.round(d.cameraDistanceM)} m from bus</small></h2>
+        <div class="cam-box">
+          <img id="cam-img" alt="Loading camera…">
+          <div class="cam-label">${esc(d.nearestCamera.name_th || d.nearestCamera.name_en || d.nearestCamera.id)}</div>
+        </div>`;
     }
   } catch { /* camera info is best-effort */ }
 
@@ -343,16 +352,40 @@ async function selectBus(busId) {
       <dt>Next stop</dt><dd>${esc(b.next_stop_name || "?")} <small>(${Math.round(Number(b.distance_to_next_stop) || 0)} m)</small></dd>
       <dt>Speed</dt><dd>${Math.round(Number(b.speed) || 0)} km/h</dd>
       <dt>Updated</dt><dd>${fmtAgo(b.received)}</dd>
-      ${camHTML}
     </dl>
     <button class="btn" id="btn-alert" ${state.tg.connected ? "" : "disabled"}>🔔 Alert me when it reaches a place</button>
     ${state.tg.connected ? "" : `<small>Connect Telegram (see above) to enable alerts.</small>`}
     <div class="btn-row">
       <button class="btn btn-ghost" id="btn-live" ${state.tg.connected ? "" : "disabled"}>📍 Live pin in Telegram</button>
     </div>
+    ${camHTML}
   `;
   $("#btn-alert").onclick = startAlertFlow;
   $("#btn-live").onclick = () => createWatch(null);
+  if (camId) startCamViewer(camId);
+}
+
+/* ---------- live camera viewer ---------- */
+let camTimer = null;
+
+function startCamViewer(camId) {
+  stopCamViewer();
+  const load = () => {
+    const el = document.getElementById("cam-img");
+    if (!el) { stopCamViewer(); return; }
+    if (document.hidden) return;
+    const next = new Image();
+    next.onload = () => { el.src = next.src; el.classList.remove("cam-err"); };
+    next.onerror = () => el.classList.add("cam-err");
+    next.src = `/api/camera/${encodeURIComponent(camId)}/frame?t=${Date.now()}`;
+  };
+  load();
+  camTimer = setInterval(load, 2500);
+}
+
+function stopCamViewer() {
+  if (camTimer) clearInterval(camTimer);
+  camTimer = null;
 }
 
 /* ---------- alert flow ---------- */
@@ -491,6 +524,7 @@ function stopRefresh() {
 }
 
 function clearTripLayers() {
+  stopCamViewer();
   layers.route.clearLayers();
   layers.stops.clearLayers();
   layers.buses.clearLayers();

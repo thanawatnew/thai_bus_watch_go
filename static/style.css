@@ -189,6 +189,25 @@ input[type=text]:focus { border-color: #2f6fed; }
 
 .hidden { display: none !important; }
 
+/* ---------- camera viewer ---------- */
+.cam-box {
+  position: relative; border-radius: 12px; overflow: hidden;
+  background: #0b0e11; border: 1px solid rgba(255,255,255,.1);
+  min-height: 120px;
+}
+.cam-box img {
+  display: block; width: 100%; aspect-ratio: 400 / 266; object-fit: cover;
+  background: #0b0e11;
+}
+.cam-box img.cam-err { opacity: .25; }
+.cam-label {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,.65); color: #d7dde3;
+  font-size: 11px; padding: 4px 8px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+h2 small { font-weight: 400; }
+
 .tg-setup {
   background: #24211a; border: 1px solid rgba(232,178,90,.3);
   border-radius: 12px; padding: 12px 14px; font-size: 13px;

@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	"io"
 	"io/fs"
 	"log"
 	"math"
@@ -38,6 +39,8 @@ func (s *Server) Handler() http.Handler {
 		_, _ = w.Write([]byte("ok"))
 	})
 
+	mux.HandleFunc("GET /api/camera/{id}/frame", s.handleCameraFrame)
+	mux.HandleFunc("POST /api/telegram/webhook", s.handleTelegramWebhook)
 	mux.HandleFunc("GET /api/trip/{id}", s.handleTrip)
 	mux.HandleFunc("GET /api/nearby", s.handleNearby)
 	mux.HandleFunc("GET /api/bus", s.handleBus)
@@ -131,6 +134,38 @@ func (s *Server) handleBus(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleTelegramStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.tg.Status())
+}
+
+// handleCameraFrame proxies a live JPEG frame from bmatraffic.com so the
+// HTTPS web app can show camera video (the source site is HTTP-only and
+// session-bound, which iPhones refuse to load directly).
+func (s *Server) handleCameraFrame(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+
+	frame, err := GetCameraFrame(ctx, r.PathValue("id"))
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, err)
+		return
+	}
+	w.Header().Set("Content-Type", "image/jpeg")
+	w.Header().Set("Cache-Control", "no-store")
+	_, _ = w.Write(frame)
+}
+
+func (s *Server) handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
+	if !s.tg.Configured() ||
+		r.Header.Get("X-Telegram-Bot-Api-Secret-Token") != s.tg.WebhookSecret() {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+	var update tgUpdate
+	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&update); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	s.tg.ProcessUpdate(r.Context(), update)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (s *Server) handleWatchList(w http.ResponseWriter, r *http.Request) {
