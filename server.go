@@ -1,0 +1,197 @@
+package main
+
+import (
+	"context"
+	"embed"
+	"encoding/json"
+	"io/fs"
+	"log"
+	"math"
+	"net/http"
+	"strings"
+	"time"
+)
+
+//go:embed static
+var staticFS embed.FS
+
+type Server struct {
+	tg      *Telegram
+	watches *WatchManager
+}
+
+func NewServer(tg *Telegram) *Server {
+	return &Server{tg: tg, watches: NewWatchManager(tg)}
+}
+
+func (s *Server) Handler() http.Handler {
+	mux := http.NewServeMux()
+
+	sub, err := fs.Sub(staticFS, "static")
+	if err != nil {
+		log.Fatal(err)
+	}
+	mux.Handle("/", http.FileServer(http.FS(sub)))
+
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
+
+	mux.HandleFunc("GET /api/trip/{id}", s.handleTrip)
+	mux.HandleFunc("GET /api/nearby", s.handleNearby)
+	mux.HandleFunc("GET /api/bus", s.handleBus)
+	mux.HandleFunc("GET /api/telegram/status", s.handleTelegramStatus)
+	mux.HandleFunc("GET /api/watch", s.handleWatchList)
+	mux.HandleFunc("POST /api/watch", s.handleWatchCreate)
+	mux.HandleFunc("DELETE /api/watch/{id}", s.handleWatchDelete)
+
+	return mux
+}
+
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(v)
+}
+
+func writeErr(w http.ResponseWriter, status int, err error) {
+	writeJSON(w, status, map[string]string{"error": err.Error()})
+}
+
+func (s *Server) handleTrip(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
+	defer cancel()
+
+	trip, err := GetTrip(ctx, r.PathValue("id"))
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, trip)
+}
+
+func (s *Server) handleNearby(w http.ResponseWriter, r *http.Request) {
+	lat := strings.TrimSpace(r.URL.Query().Get("lat"))
+	lon := strings.TrimSpace(r.URL.Query().Get("lon"))
+	if lat == "" || lon == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "lat and lon are required"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
+	defer cancel()
+
+	stops, err := GetNearbyStops(ctx, lat, lon)
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, stops)
+}
+
+// handleBus returns one bus's live position plus the nearest BMA traffic camera.
+func (s *Server) handleBus(w http.ResponseWriter, r *http.Request) {
+	tripID := strings.TrimSpace(r.URL.Query().Get("trip"))
+	busID := strings.TrimSpace(r.URL.Query().Get("bus"))
+	if tripID == "" || busID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "trip and bus are required"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
+	defer cancel()
+
+	trip, err := GetTrip(ctx, tripID)
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, err)
+		return
+	}
+
+	bus, found := FindBus(trip, busID)
+	if !found {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "bus not found on this trip"})
+		return
+	}
+
+	resp := map[string]any{
+		"bus":       bus,
+		"routeName": trip.RouteShortName,
+		"headsign":  trip.TripHeadsign,
+	}
+
+	if cameras, err := GetBMACameras(ctx); err == nil && len(cameras) > 0 {
+		cam, dist := NearestCamera(bus.BestLat(), bus.BestLon(), cameras)
+		resp["nearestCamera"] = cam
+		resp["cameraDistanceM"] = math.Round(dist)
+	}
+
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func (s *Server) handleTelegramStatus(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, s.tg.Status())
+}
+
+func (s *Server) handleWatchList(w http.ResponseWriter, r *http.Request) {
+	list := s.watches.List()
+	out := make([]map[string]any, 0, len(list))
+	for _, wa := range list {
+		wa.mu.Lock()
+		out = append(out, map[string]any{
+			"id":        wa.ID,
+			"tripId":    wa.TripID,
+			"busId":     wa.BusID,
+			"routeName": wa.RouteName,
+			"headsign":  wa.Headsign,
+			"alert":     wa.Alert,
+			"status":    wa.Status,
+			"lastSeen":  wa.LastSeen,
+			"createdAt": wa.CreatedAt.Unix(),
+			"expiresAt": wa.ExpiresAt.Unix(),
+		})
+		wa.mu.Unlock()
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+func (s *Server) handleWatchCreate(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		TripID      string      `json:"tripId"`
+		BusID       string      `json:"busId"`
+		Alert       *AlertPoint `json:"alert"`
+		DurationMin int         `json:"durationMin"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+	if strings.TrimSpace(req.TripID) == "" || strings.TrimSpace(req.BusID) == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "tripId and busId are required"})
+		return
+	}
+	if req.Alert != nil && req.Alert.RadiusM <= 0 {
+		req.Alert.RadiusM = 500
+	}
+	if !s.tg.Ready() {
+		writeJSON(w, http.StatusConflict, map[string]string{
+			"error": "telegram is not connected yet — open your bot chat and send /start first",
+		})
+		return
+	}
+
+	watch, err := s.watches.Start(req.TripID, req.BusID, req.Alert, time.Duration(req.DurationMin)*time.Minute)
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]any{"id": watch.ID, "status": "active"})
+}
+
+func (s *Server) handleWatchDelete(w http.ResponseWriter, r *http.Request) {
+	if !s.watches.Stop(r.PathValue("id")) {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "watch not found"})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "stopped"})
+}

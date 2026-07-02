@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: thai-bus-watch
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false # paste your BotFather token in the Render dashboard

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Thai Bus Watch</title>
+<meta name="theme-color" content="#101418">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bus Watch">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="map"></div>
+
+<div id="topbar">
+  <button id="btn-home" title="Home">🚌</button>
+  <div id="topbar-title">Thai Bus Watch</div>
+  <div id="tg-pill" class="pill pill-off" title="Telegram status">⋯</div>
+</div>
+
+<div id="watchbar"></div>
+
+<div id="sheet">
+  <div id="sheet-handle"></div>
+  <div id="sheet-content"></div>
+</div>
+
+<div id="alert-overlay" class="hidden">
+  <div class="overlay-hint">Tap the map where you want the alert<br><small>e.g. your bus stop — you'll be notified when the bus gets close</small></div>
+  <div class="overlay-actions">
+    <button id="alert-use-me" class="btn">📍 Use my location</button>
+    <button id="alert-cancel" class="btn btn-ghost">Cancel</button>
+  </div>
+</div>
+
+<div id="toast" class="hidden"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
