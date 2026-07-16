@@ -3,7 +3,7 @@
 
 const BANGKOK = [13.7563, 100.5018];
 const REFRESH_MS = 5000;
-const APP_VERSION = "0.5.3";
+const APP_VERSION = "0.5.4";
 const BMA_PREFLIGHT_KEY = "bmaCameraPreflightV1";
 const I18N = {
   en: { step:"Step", open:"Open", hide:"Hide", location:"Choose a location", locationHelp:"Use your location or tap your position on the map.", stop:"Choose a nearby stop", stopHelp:"Tap a stop to see its live routes and arrivals.", route:"Choose a bus route", routeHelp:"Tap the route you want to follow.", routeStop:"Choose a route stop", routeStopHelp:"Tap the stop where you want to meet the bus.", bus:"Choose a live bus", busHelp:"Tap a bus below to open its live details.", view:"View bus and camera", viewHelp:"Review the live bus details, then open the available traffic camera.", reset:"Start over from Step 1 and run the BMA camera test again? Your recent routes will be kept.", preflightTitle:"Test BMA camera access", iphoneTitle:"iPhone users: Firefox is recommended.", iphoneText:"Safari may not open BMA Traffic's external HTTP-only camera page reliably. Open Bus-287 in Firefox before running this test.", preflightIntro:"BMA Traffic is a separate, HTTP-only website. Its availability and content are controlled by BMA Traffic, not Bus-287.", preflightStep1:"1. Open the test: tap the blue BMA camera button below.", preflightStep2:"2. Allow the external page only if you accept opening BMA's HTTP website.", preflightStep3:"3. Check whether the BMA camera content appears.", preflightStep4:"4. Return to this Bus-287 browser tab.", preflightStep5:"5. Report Yes or No below to enter Bus Watch.", openBmaTest:"🎥 Open BMA camera test ↗", bmaWorkedQuestion:"Did the BMA camera page open correctly?", bmaYes:"Yes, camera worked — continue", bmaNo:"No — continue with bus tracking only", preflightDisclaimer:"By continuing, you understand that external camera access may be insecure, unavailable, or behave differently in each browser." },
@@ -20,6 +20,15 @@ Object.assign(I18N.en, {
   mobileTip: "Android/iPhone tip: tap or swipe the bar above this panel to hide it, then tap the bar again to reopen it.",
   mapTapHint: "👆 Or tap anywhere on the map to find the nearest bus stops there.",
   findStops: "📍 Find nearest bus stops", clearSaved: "🧹 Clear saved data & cache",
+  optionalRoute: "Optional: open a route by trip ID", tripPlaceholder: "Trip ID, e.g. 7179", go: "Go",
+  tripHelp: "Only use this if you already know a trip ID from", recentRoutes: "Recent routes",
+  civic: "Independent experimental civic-tech project. Not affiliated with or endorsed by Bangkok Metropolitan Administration. Camera content remains on the official BMA Traffic service.",
+  nearestCamera: "Nearest traffic camera", upcomingCamera: "Upcoming traffic camera", fromBus: "m from bus",
+  onRoute: "on route", nearRoute: "near route", cameraId: "Current camera ID", openCamera: "Open camera on BMA ↗",
+  previousCamera: "‹ Previous camera", nextCamera: "Next camera ›", showPins: "🗺️ Show bus + camera pins",
+  cameraAvailable: "🎥 Traffic camera available", cameraAvailableHelp: "Tap to view the nearest camera for this bus ↓",
+  cameraNote: "BMA Traffic is a separate website. If the camera does not start, allow the BMA page, return here, and open it again.",
+  alertPlace: "🔔 Alert me when it reaches a place",
 });
 Object.assign(I18N.th, {
   resetLabel: "↻ รีเซ็ต", twoNearest: "รถที่กำลังวิ่งใกล้ที่สุด 2 คัน", allBuses: "รถทั้งหมด",
@@ -32,6 +41,15 @@ Object.assign(I18N.th, {
   mobileTip: "คำแนะนำ Android/iPhone: แตะหรือปัดแถบด้านบนแผงนี้เพื่อซ่อน แล้วแตะแถบอีกครั้งเพื่อเปิด",
   mapTapHint: "👆 หรือแตะตำแหน่งใดก็ได้บนแผนที่เพื่อค้นหาป้ายใกล้เคียง",
   findStops: "📍 ค้นหาป้ายรถโดยสารใกล้เคียง", clearSaved: "🧹 ล้างข้อมูลที่บันทึกและแคช",
+  optionalRoute: "ตัวเลือกเพิ่มเติม: เปิดเส้นทางด้วยรหัสเที่ยวรถ", tripPlaceholder: "รหัสเที่ยวรถ เช่น 7179", go: "ไป",
+  tripHelp: "ใช้ตัวเลือกนี้เมื่อคุณทราบรหัสเที่ยวรถจาก", recentRoutes: "เส้นทางล่าสุด",
+  civic: "โครงการทดลองเทคโนโลยีเพื่อสังคมอิสระ ไม่ได้เป็นส่วนหนึ่งหรือได้รับการรับรองจากกรุงเทพมหานคร เนื้อหากล้องยังคงอยู่บนบริการ BMA Traffic อย่างเป็นทางการ",
+  nearestCamera: "กล้องจราจรที่ใกล้ที่สุด", upcomingCamera: "กล้องจราจรข้างหน้า", fromBus: "ม. จากรถ",
+  onRoute: "อยู่บนเส้นทาง", nearRoute: "อยู่ใกล้เส้นทาง", cameraId: "รหัสกล้องปัจจุบัน", openCamera: "เปิดกล้องบน BMA ↗",
+  previousCamera: "‹ กล้องก่อนหน้า", nextCamera: "กล้องถัดไป ›", showPins: "🗺️ แสดงตำแหน่งรถและกล้อง",
+  cameraAvailable: "🎥 มีกล้องจราจร", cameraAvailableHelp: "แตะเพื่อดูกล้องที่ใกล้รถคันนี้ที่สุด ↓",
+  cameraNote: "BMA Traffic เป็นเว็บไซต์ภายนอก หากกล้องไม่เริ่มทำงาน ให้อนุญาตหน้า BMA แล้วกลับมาเปิดอีกครั้ง",
+  alertPlace: "🔔 แจ้งเตือนเมื่อรถถึงสถานที่",
 });
 let currentLang = (() => { try { return localStorage.getItem("buswatchLanguage") || (navigator.language?.startsWith("th") ? "th" : "en"); } catch { return "en"; } })();
 const t = (key) => I18N[currentLang]?.[key] || I18N.en[key] || key;
@@ -271,19 +289,19 @@ function renderHome() {
     <button class="btn" id="btn-near">${t("findStops")}</button>
     <div class="map-pick-hint">${t("mapTapHint")}</div>
     <details class="optional-route">
-      <summary>Optional: open a route by trip ID</summary>
+      <summary>${t("optionalRoute")}</summary>
       <div class="input-row">
-        <input type="text" id="trip-input" inputmode="numeric" placeholder="Trip ID, e.g. 7179">
-        <button class="btn" id="btn-open-trip">Go</button>
+        <input type="text" id="trip-input" inputmode="numeric" placeholder="${t("tripPlaceholder")}">
+        <button class="btn" id="btn-open-trip">${t("go")}</button>
       </div>
-      <small>Only use this if you already know a trip ID from <a href="https://namtang.otp.go.th" style="color:#7fb8ff">namtang.otp.go.th</a>.</small>
+      <small>${t("tripHelp")} <a href="https://namtang.otp.go.th" style="color:#7fb8ff">namtang.otp.go.th</a>.</small>
     </details>
-    ${recents.length ? `<h2>Recent routes</h2><div class="chips">` +
+    ${recents.length ? `<h2>${t("recentRoutes")}</h2><div class="chips">` +
       recents.map((r) => `<button class="route-chip" style="background:#2f6fed"
         data-trip="${esc(r.tripId)}">${esc(r.name)} → ${esc(r.headsign)}</button>`).join("") + `</div>` : ""}
     <div id="nearby-out"></div>
     <button class="btn btn-ghost btn-clear-cache" id="btn-clear-cache">${t("clearSaved")}</button>
-    <div class="civic-tech-label">Independent experimental civic-tech project. Not affiliated with or endorsed by Bangkok Metropolitan Administration. Camera content remains on the official BMA Traffic service.</div>
+    <div class="civic-tech-label">${t("civic")}</div>
     <small class="app-version">Version ${APP_VERSION}</small>
   `);
 
@@ -775,20 +793,20 @@ async function selectBus(busId, options = {}) {
       }
       camHTML = `
         <div id="camera-section">
-        <h2>🎥 ${d.cameraSelection === "nearest" ? "Nearest" : "Upcoming"} traffic camera <small>· ${Math.round(d.cameraDistanceM)} m from bus · ${d.cameraOnRoute ? "on route" : "near route"}</small></h2>
+        <h2>🎥 ${d.cameraSelection === "nearest" ? t("nearestCamera") : t("upcomingCamera")} <small>· ${Math.round(d.cameraDistanceM)} ${t("fromBus")} · ${d.cameraOnRoute ? t("onRoute") : t("nearRoute")}</small></h2>
         <div class="camera-link-info">
           <b>${esc(d.nearestCamera.name_th || d.nearestCamera.name_en || d.nearestCamera.id)}</b>
-          <small>Current camera ID: ${esc(d.nearestCamera.id)}</small>
+          <small>${t("cameraId")}: ${esc(d.nearestCamera.id)}</small>
         </div>
         <a id="camera-link" class="btn btn-ghost btn-direct-camera"
           data-camera-id="${esc(camId)}" href="${esc(d.nearestCamera.feed_url)}"
-          target="_blank" rel="noopener">Open camera on BMA ↗</a>
-        <div class="camera-site-note">ℹ️ BMA Traffic is a separate website. On first use, you must open and allow the camera feed there yourself. If it does not start, allow the BMA page, return here, and open it again.</div>
+          target="_blank" rel="noopener">${t("openCamera")}</a>
+        <div class="camera-site-note">ℹ️ ${t("cameraNote")}</div>
         <div class="btn-row camera-nav">
-          <button class="btn btn-ghost" id="btn-prev-camera" ${state.cameraIndexOffset <= 0 ? "disabled" : ""}>‹ Previous camera</button>
-          <button class="btn btn-ghost" id="btn-next-camera" ${state.cameraIndexOffset >= cameraCandidates.length - 1 ? "disabled" : ""}>Next camera ›</button>
+          <button class="btn btn-ghost" id="btn-prev-camera" ${state.cameraIndexOffset <= 0 ? "disabled" : ""}>${t("previousCamera")}</button>
+          <button class="btn btn-ghost" id="btn-next-camera" ${state.cameraIndexOffset >= cameraCandidates.length - 1 ? "disabled" : ""}>${t("nextCamera")}</button>
         </div>
-        <button class="btn btn-ghost btn-map-pins" id="btn-map-pins">🗺️ Show bus + camera pins</button>
+        <button class="btn btn-ghost btn-map-pins" id="btn-map-pins">${t("showPins")}</button>
         </div>`;
     }
   } catch { /* camera info is best-effort */ }
@@ -828,25 +846,20 @@ async function selectBus(busId, options = {}) {
     ${busSwitcher}
     <div class="trip-id-line">Route ${esc(state.trip.routeShortName)} · Trip ID ${esc(state.tripId)}</div>
     ${tripFeatureHTML(state.trip)}
-    ${camId ? `<button class="camera-available" id="btn-view-camera"><b>🎥 Traffic camera available</b><span>Tap to view the nearest camera for this bus ↓</span></button>` : ""}
+    ${camId ? `<button class="camera-available" id="btn-view-camera"><b>${t("cameraAvailable")}</b><span>${t("cameraAvailableHelp")}</span></button>` : ""}
     <dl class="detail-grid">
       <dt>Direction</dt><dd id="detail-direction">${b.is_reversed ? "↩ Opposite/return direction" : `→ Toward ${esc(state.trip.tripHeadsign)}`}</dd>
       <dt>Next stop</dt><dd id="detail-next-stop">${esc(b.next_stop_name || "?")} (${Math.round(Number(b.distance_to_next_stop) || 0)} m)</dd>
       <dt>Speed</dt><dd id="detail-speed">${Math.round(Number(b.speed) || 0)} km/h</dd>
       <dt>Updated</dt><dd id="detail-updated">${fmtAgo(b.received)}</dd>
     </dl>
-    <button class="btn" id="btn-alert" ${state.tg.connected ? "" : "disabled"}>🔔 Alert me when it reaches a place</button>
-    ${state.tg.connected ? "" : `<small>Connect Telegram (see above) to enable alerts.</small>`}
-    <div class="btn-row">
-      <button class="btn btn-ghost" id="btn-live" ${state.tg.connected ? "" : "disabled"}>📍 Live pin in Telegram</button>
-    </div>
+    ${state.tg.connected ? `<button class="btn" id="btn-alert">${t("alertPlace")}</button>` : ""}
     ${camHTML}
   `;
   if (options.userAction) revealSheetTarget("#guide-step-5");
   $("#btn-view-camera")?.addEventListener("click", () => revealSheetTarget("#camera-section", 0));
-  $("#btn-alert").onclick = startAlertFlow;
+  $("#btn-alert")?.addEventListener("click", startAlertFlow);
   $("#btn-back-stop")?.addEventListener("click", () => selectStop(state.selectedStop));
-  $("#btn-live").onclick = () => createWatch(null);
   detail.querySelectorAll("[data-switch-bus]").forEach((button) => {
     button.onclick = () => selectBus(button.dataset.switchBus, { userAction: true });
   });
