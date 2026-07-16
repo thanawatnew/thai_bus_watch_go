@@ -3,7 +3,7 @@
 
 const BANGKOK = [13.7563, 100.5018];
 const REFRESH_MS = 5000;
-const APP_VERSION = "0.4.7";
+const APP_VERSION = "0.4.8";
 const BMA_PREFLIGHT_KEY = "bmaCameraPreflightV1";
 
 const state = {
@@ -1052,6 +1052,13 @@ function clearTripLayers() {
 
 /* ---------- wire up ---------- */
 $("#btn-home").onclick = () => { clearTripLayers(); renderHome(); };
+$("#btn-reset").onclick = () => {
+  if (!window.confirm("Start over from Step 1 and run the BMA camera test again? Your recent routes will be kept.")) return;
+  localStorage.removeItem(BMA_PREFLIGHT_KEY);
+  localStorage.removeItem("lastStopSelection");
+  localStorage.removeItem("bmaCameraNoticeSeen");
+  location.reload();
+};
 $("#btn-about").onclick = () => {
   setGuideStep(5, "About Bus-287");
   setSheet(`
