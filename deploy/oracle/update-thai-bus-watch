@@ -1,0 +1,46 @@
+#!/bin/sh
+set -eu
+
+repo=/opt/thai_bus_watch_go
+domain="${DOMAIN:-287287287.xyz}"
+
+if [ ! -d "$repo/.git" ]; then
+  git clone --branch main https://github.com/thanawatnew/thai_bus_watch_go.git "$repo"
+else
+  git -C "$repo" fetch origin main
+  git -C "$repo" reset --hard origin/main
+fi
+
+docker build -t thai-bus-watch:oracle "$repo"
+docker pull caddy:2-alpine
+docker network inspect buswatch-net >/dev/null 2>&1 || docker network create buswatch-net
+
+# Validate the proxy configuration before replacing the running HTTP service.
+docker run --rm \
+  -e DOMAIN="$domain" \
+  -v "$repo/deploy/oracle/Caddyfile:/etc/caddy/Caddyfile:ro" \
+  caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile
+
+docker rm -f thai-bus-watch buswatch caddy 2>/dev/null || true
+docker run -d \
+  --name buswatch \
+  --restart unless-stopped \
+  --network buswatch-net \
+  -e PORT=8080 \
+  -e SELF_URL="https://$domain" \
+  -e TELEGRAM_BOT_TOKEN= \
+  -e TELEGRAM_CHAT_ID= \
+  thai-bus-watch:oracle
+
+docker run -d \
+  --name caddy \
+  --restart unless-stopped \
+  --network buswatch-net \
+  -e DOMAIN="$domain" \
+  -p 80:80 \
+  -p 443:443 \
+  -p 443:443/udp \
+  -v "$repo/deploy/oracle/Caddyfile:/etc/caddy/Caddyfile:ro" \
+  -v caddy_data:/data \
+  -v caddy_config:/config \
+  caddy:2-alpine
