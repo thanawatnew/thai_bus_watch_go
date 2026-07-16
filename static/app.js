@@ -3,7 +3,7 @@
 
 const BANGKOK = [13.7563, 100.5018];
 const REFRESH_MS = 5000;
-const APP_VERSION = "0.5.1";
+const APP_VERSION = "0.5.2";
 const BMA_PREFLIGHT_KEY = "bmaCameraPreflightV1";
 const I18N = {
   en: { step:"Step", open:"Open", hide:"Hide", location:"Choose a location", locationHelp:"Use your location or tap your position on the map.", stop:"Choose a nearby stop", stopHelp:"Tap a stop to see its live routes and arrivals.", route:"Choose a bus route", routeHelp:"Tap the route you want to follow.", routeStop:"Choose a route stop", routeStopHelp:"Tap the stop where you want to meet the bus.", bus:"Choose a live bus", busHelp:"Tap a bus below to open its live details.", view:"View bus and camera", viewHelp:"Review the live bus details, then open the available traffic camera.", reset:"Start over from Step 1 and run the BMA camera test again? Your recent routes will be kept.", preflightTitle:"Test BMA camera access", iphoneTitle:"iPhone users: Firefox is recommended.", iphoneText:"Safari may not open BMA Traffic's external HTTP-only camera page reliably. Open Bus-287 in Firefox before running this test.", preflightIntro:"BMA Traffic is a separate, HTTP-only website. Its availability and content are controlled by BMA Traffic, not Bus-287.", preflightStep1:"1. Open the test: tap the blue BMA camera button below.", preflightStep2:"2. Allow the external page only if you accept opening BMA's HTTP website.", preflightStep3:"3. Check whether the BMA camera content appears.", preflightStep4:"4. Return to this Bus-287 browser tab.", preflightStep5:"5. Report Yes or No below to enter Bus Watch.", openBmaTest:"🎥 Open BMA camera test ↗", bmaWorkedQuestion:"Did the BMA camera page open correctly?", bmaYes:"Yes, camera worked — continue", bmaNo:"No — continue with bus tracking only", preflightDisclaimer:"By continuing, you understand that external camera access may be insecure, unavailable, or behave differently in each browser." },
@@ -14,12 +14,22 @@ Object.assign(I18N.en, {
   noGps: "No buses reporting GPS right now.", noApproaching: "No approaching bus estimate is available.",
   noLiveTrip: "No live buses on this trip.", loadingArrival: "Loading arrival estimate…",
   showArrivals: "Show arrivals ›", selectStopBuses: "Select this bus stop to see buses.",
+  homeTitle: "1. Select your nearest location first",
+  homeHelp: "Use your location or tap your position on the map. Then choose a bus stop and bus.",
+  mobileTip: "Android/iPhone tip: tap or swipe the bar above this panel to hide it, then tap the bar again to reopen it.",
+  mapTapHint: "👆 Or tap anywhere on the map to find the nearest bus stops there.",
+  findStops: "📍 Find nearest bus stops", clearSaved: "🧹 Clear saved data & cache",
 });
 Object.assign(I18N.th, {
   resetLabel: "↻ รีเซ็ต", twoNearest: "รถที่กำลังวิ่งใกล้ที่สุด 2 คัน", allBuses: "รถทั้งหมด",
   noGps: "ขณะนี้ไม่มีรถส่งข้อมูล GPS", noApproaching: "ไม่มีข้อมูลประมาณเวลาของรถที่กำลังเข้าใกล้",
   noLiveTrip: "ไม่มีรถที่กำลังวิ่งในเที่ยวนี้", loadingArrival: "กำลังโหลดเวลาถึงโดยประมาณ…",
   showArrivals: "ดูรถที่จะมาถึง ›", selectStopBuses: "เลือกป้ายนี้เพื่อดูรถโดยสาร",
+  homeTitle: "1. เลือกตำแหน่งที่ใกล้คุณที่สุดก่อน",
+  homeHelp: "ใช้ตำแหน่งปัจจุบันหรือแตะตำแหน่งของคุณบนแผนที่ จากนั้นเลือกป้ายและรถโดยสาร",
+  mobileTip: "คำแนะนำ Android/iPhone: แตะหรือปัดแถบด้านบนแผงนี้เพื่อซ่อน แล้วแตะแถบอีกครั้งเพื่อเปิด",
+  mapTapHint: "👆 หรือแตะตำแหน่งใดก็ได้บนแผนที่เพื่อค้นหาป้ายใกล้เคียง",
+  findStops: "📍 ค้นหาป้ายรถโดยสารใกล้เคียง", clearSaved: "🧹 ล้างข้อมูลที่บันทึกและแคช",
 });
 let currentLang = (() => { try { return localStorage.getItem("buswatchLanguage") || (navigator.language?.startsWith("th") ? "th" : "en"); } catch { return "en"; } })();
 const t = (key) => I18N[currentLang]?.[key] || I18N.en[key] || key;
@@ -252,12 +262,12 @@ function renderHome() {
     ${telegramSetupHTML()}
     ${state.access.enabled ? `<small class="access-count">Priority access: ${state.access.active}/${state.access.maxUsers} active · pass rank ${state.access.rank}</small>` : ""}
     <div class="onboarding-note">
-      <b>1. Select your nearest location first</b>
-      <span>Use your location or tap your own nearest point on the map. Then choose a bus stop and bus.</span>
-      <span>Android/iPhone tip: tap or swipe the bar above this panel to close it, then tap the bar again to reopen it.</span>
+      <b>${t("homeTitle")}</b>
+      <span>${t("homeHelp")}</span>
+      <span>${t("mobileTip")}</span>
     </div>
-    <button class="btn" id="btn-near">📍 Find nearest bus stops</button>
-    <div class="map-pick-hint">👆 Or tap anywhere on the map to find the nearest bus stops there.</div>
+    <button class="btn" id="btn-near">${t("findStops")}</button>
+    <div class="map-pick-hint">${t("mapTapHint")}</div>
     <details class="optional-route">
       <summary>Optional: open a route by trip ID</summary>
       <div class="input-row">
@@ -270,7 +280,7 @@ function renderHome() {
       recents.map((r) => `<button class="route-chip" style="background:#2f6fed"
         data-trip="${esc(r.tripId)}">${esc(r.name)} → ${esc(r.headsign)}</button>`).join("") + `</div>` : ""}
     <div id="nearby-out"></div>
-    <button class="btn btn-ghost btn-clear-cache" id="btn-clear-cache">🧹 Clear saved data & cache</button>
+    <button class="btn btn-ghost btn-clear-cache" id="btn-clear-cache">${t("clearSaved")}</button>
     <div class="civic-tech-label">Independent experimental civic-tech project. Not affiliated with or endorsed by Bangkok Metropolitan Administration. Camera content remains on the official BMA Traffic service.</div>
     <small class="app-version">Version ${APP_VERSION}</small>
   `);
