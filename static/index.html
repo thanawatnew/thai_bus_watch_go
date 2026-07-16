@@ -20,7 +20,11 @@
 
 <div id="topbar">
   <button id="btn-home" title="Home">🚌</button>
-  <div id="topbar-title">Thai Bus Watch <small class="topbar-version">v0.4.8</small></div>
+  <div id="topbar-title">Thai Bus Watch <small class="topbar-version">v0.5.0</small></div>
+  <select id="language-select" title="Language" aria-label="Language">
+    <option value="en">EN</option>
+    <option value="th">ไทย</option>
+  </select>
   <button id="btn-reset" class="topbar-icon" type="button" title="Reset and start over" aria-label="Reset setup and start over">↻</button>
   <button id="btn-about" class="topbar-icon" type="button" title="About Bus-287" aria-label="About Bus-287">?</button>
   <div id="tg-pill" class="pill pill-off" title="Telegram status">⋯</div>
@@ -43,26 +47,26 @@
 
 <div id="camera-preflight" class="preflight-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="preflight-title">
   <div class="preflight-card">
-    <h1 id="preflight-title">Test BMA camera access</h1>
+    <h1 id="preflight-title" data-i18n="preflightTitle">Test BMA camera access</h1>
     <div id="iphone-browser-warning" class="browser-warning hidden">
-      <b>iPhone users: Firefox is recommended.</b>
-      <span>Safari may not open BMA Traffic's external HTTP-only camera page reliably. Open Bus-287 in Firefox before running this test.</span>
+      <b data-i18n="iphoneTitle">iPhone users: Firefox is recommended.</b>
+      <span data-i18n="iphoneText">Safari may not open BMA Traffic's external HTTP-only camera page reliably. Open Bus-287 in Firefox before running this test.</span>
     </div>
-    <p>BMA Traffic is a separate, HTTP-only website. Its availability and content are controlled by BMA Traffic, not Bus-287.</p>
+    <p data-i18n="preflightIntro">BMA Traffic is a separate, HTTP-only website. Its availability and content are controlled by BMA Traffic, not Bus-287.</p>
     <ol class="preflight-steps">
-      <li><b>Open the test.</b> Tap the blue BMA camera button below.</li>
-      <li><b>Allow the external page.</b> If your browser shows a warning, continue only if you accept opening BMA's HTTP website.</li>
-      <li><b>Check the camera.</b> Wait for the BMA page and confirm whether its camera content appears.</li>
-      <li><b>Return to Bus-287.</b> Come back to this browser tab.</li>
-      <li><b>Report the result.</b> Select “Yes” or “No” below to enter Bus Watch.</li>
+      <li data-i18n="preflightStep1"><b>Open the test.</b> Tap the blue BMA camera button below.</li>
+      <li data-i18n="preflightStep2"><b>Allow the external page.</b> If your browser shows a warning, continue only if you accept opening BMA's HTTP website.</li>
+      <li data-i18n="preflightStep3"><b>Check the camera.</b> Wait for the BMA page and confirm whether its camera content appears.</li>
+      <li data-i18n="preflightStep4"><b>Return to Bus-287.</b> Come back to this browser tab.</li>
+      <li data-i18n="preflightStep5"><b>Report the result.</b> Select “Yes” or “No” below to enter Bus Watch.</li>
     </ol>
-    <a class="btn" id="btn-test-bma" href="http://www.bmatraffic.com/PlayVideo.aspx?ID=1443" target="_blank" rel="noopener">🎥 Open BMA camera test ↗</a>
+    <a class="btn" id="btn-test-bma" href="http://www.bmatraffic.com/PlayVideo.aspx?ID=1443" target="_blank" rel="noopener" data-i18n="openBmaTest">🎥 Open BMA camera test ↗</a>
     <div id="preflight-result" class="hidden">
-      <p><b>Did the BMA camera page open correctly?</b></p>
-      <button class="btn" id="btn-bma-worked">Yes, camera worked — continue</button>
-      <button class="btn btn-ghost" id="btn-bma-failed">No — continue with bus tracking only</button>
+      <p><b data-i18n="bmaWorkedQuestion">Did the BMA camera page open correctly?</b></p>
+      <button class="btn" id="btn-bma-worked" data-i18n="bmaYes">Yes, camera worked — continue</button>
+      <button class="btn btn-ghost" id="btn-bma-failed" data-i18n="bmaNo">No — continue with bus tracking only</button>
     </div>
-    <small>By continuing, you understand that external camera access may be insecure, unavailable, or behave differently in each browser.</small>
+    <small data-i18n="preflightDisclaimer">By continuing, you understand that external camera access may be insecure, unavailable, or behave differently in each browser.</small>
   </div>
 </div>
 

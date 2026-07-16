@@ -34,6 +34,11 @@ html, body {
   background: #262c33; color: #d7dde3; font-size: 15px;
   font-weight: 800; cursor: pointer;
 }
+#language-select {
+  height: 32px; max-width: 58px; padding: 0 5px; border-radius: 9px;
+  border: 1px solid rgba(255,255,255,.14); background: #262c33;
+  color: #e8eaed; font-size: 12px; font-weight: 700;
+}
 
 .pill { font-size: 12px; padding: 4px 10px; border-radius: 99px; font-weight: 600; }
 .pill-on  { background: #16351f; color: #6fd388; }

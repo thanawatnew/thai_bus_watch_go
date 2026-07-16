@@ -3,8 +3,19 @@
 
 const BANGKOK = [13.7563, 100.5018];
 const REFRESH_MS = 5000;
-const APP_VERSION = "0.4.8";
+const APP_VERSION = "0.5.0";
 const BMA_PREFLIGHT_KEY = "bmaCameraPreflightV1";
+const I18N = {
+  en: { step:"Step", open:"Open", hide:"Hide", location:"Choose a location", locationHelp:"Use your location or tap your position on the map.", stop:"Choose a nearby stop", stopHelp:"Tap a stop to see its live routes and arrivals.", route:"Choose a bus route", routeHelp:"Tap the route you want to follow.", routeStop:"Choose a route stop", routeStopHelp:"Tap the stop where you want to meet the bus.", bus:"Choose a live bus", busHelp:"Tap a bus below to open its live details.", view:"View bus and camera", viewHelp:"Review the live bus details, then open the available traffic camera.", reset:"Start over from Step 1 and run the BMA camera test again? Your recent routes will be kept.", preflightTitle:"Test BMA camera access", iphoneTitle:"iPhone users: Firefox is recommended.", iphoneText:"Safari may not open BMA Traffic's external HTTP-only camera page reliably. Open Bus-287 in Firefox before running this test.", preflightIntro:"BMA Traffic is a separate, HTTP-only website. Its availability and content are controlled by BMA Traffic, not Bus-287.", preflightStep1:"1. Open the test: tap the blue BMA camera button below.", preflightStep2:"2. Allow the external page only if you accept opening BMA's HTTP website.", preflightStep3:"3. Check whether the BMA camera content appears.", preflightStep4:"4. Return to this Bus-287 browser tab.", preflightStep5:"5. Report Yes or No below to enter Bus Watch.", openBmaTest:"🎥 Open BMA camera test ↗", bmaWorkedQuestion:"Did the BMA camera page open correctly?", bmaYes:"Yes, camera worked — continue", bmaNo:"No — continue with bus tracking only", preflightDisclaimer:"By continuing, you understand that external camera access may be insecure, unavailable, or behave differently in each browser." },
+  th: { step:"ขั้นตอน", open:"เปิด", hide:"ซ่อน", location:"เลือกตำแหน่ง", locationHelp:"ใช้ตำแหน่งปัจจุบันหรือแตะตำแหน่งบนแผนที่", stop:"เลือกป้ายใกล้เคียง", stopHelp:"แตะป้ายเพื่อดูสายรถและเวลาถึงแบบสด", route:"เลือกสายรถโดยสาร", routeHelp:"แตะสายรถที่ต้องการติดตาม", routeStop:"เลือกป้ายในเส้นทาง", routeStopHelp:"แตะป้ายที่คุณต้องการขึ้นรถ", bus:"เลือกรถที่กำลังวิ่ง", busHelp:"แตะรถด้านล่างเพื่อดูรายละเอียดสด", view:"ดูรถและกล้อง", viewHelp:"ดูรายละเอียดรถ แล้วเปิดกล้องจราจรที่มีอยู่", reset:"เริ่มใหม่จากขั้นตอนที่ 1 และทดสอบกล้อง BMA อีกครั้งหรือไม่? รายการเส้นทางล่าสุดจะยังอยู่", preflightTitle:"ทดสอบการเข้าถึงกล้อง BMA", iphoneTitle:"ผู้ใช้ iPhone: แนะนำ Firefox", iphoneText:"Safari อาจเปิดหน้ากล้อง HTTP ของ BMA ได้ไม่สมบูรณ์ กรุณาใช้ Firefox", preflightIntro:"BMA Traffic เป็นเว็บไซต์ HTTP ภายนอก ซึ่งไม่ได้ควบคุมโดย Bus-287", preflightStep1:"1. แตะปุ่มสีน้ำเงินเพื่อเปิดหน้าทดสอบกล้อง BMA", preflightStep2:"2. อนุญาตหน้าเว็บภายนอกเมื่อคุณยอมรับการเปิดเว็บไซต์ HTTP", preflightStep3:"3. ตรวจสอบว่าภาพจากกล้อง BMA แสดงหรือไม่", preflightStep4:"4. กลับมายังแท็บ Bus-287", preflightStep5:"5. ตอบว่าใช่หรือไม่ใช่เพื่อเข้าใช้งาน", openBmaTest:"🎥 เปิดหน้าทดสอบกล้อง BMA ↗", bmaWorkedQuestion:"หน้ากล้อง BMA เปิดได้ถูกต้องหรือไม่?", bmaYes:"ใช่ กล้องใช้งานได้ — ต่อไป", bmaNo:"ไม่ — ใช้เฉพาะการติดตามรถ", preflightDisclaimer:"เมื่อดำเนินการต่อ คุณเข้าใจว่ากล้องภายนอกอาจไม่ปลอดภัยหรือไม่พร้อมใช้งาน" }
+};
+let currentLang = (() => { try { return localStorage.getItem("buswatchLanguage") || (navigator.language?.startsWith("th") ? "th" : "en"); } catch { return "en"; } })();
+const t = (key) => I18N[currentLang]?.[key] || I18N.en[key] || key;
+function applyLanguage() {
+  document.documentElement.lang = currentLang;
+  $("#language-select").value = currentLang;
+  document.querySelectorAll("[data-i18n]").forEach((element) => { element.textContent = t(element.dataset.i18n); });
+}
 
 const state = {
   view: "home",          // home | trip | alert-pick
@@ -93,7 +104,7 @@ function revealSheetTarget(target, delay = 80) {
 
 function guideBanner(number, title, instruction) {
   return `<div class="guide-banner" id="guide-step-${number}">
-    <b>Step ${number} of 5 · ${esc(title)}</b><span>${esc(instruction)}</span>
+    <b>${t("step")} ${number}/5 · ${esc(title)}</b><span>${esc(instruction)}</span>
   </div>`;
 }
 
@@ -219,11 +230,12 @@ async function requirePriorityAccess() {
 
 /* ---------- home view ---------- */
 function renderHome() {
-  setGuideStep(1, "Choose a location");
+  setGuideStep(1, t("location"));
   state.view = "home";
   stopRefresh();
   const recents = getRecents();
   setSheet(`
+    ${guideBanner(1, t("location"), t("locationHelp"))}
     ${telegramSetupHTML()}
     ${state.access.enabled ? `<small class="access-count">Priority access: ${state.access.active}/${state.access.maxUsers} active · pass rank ${state.access.rank}</small>` : ""}
     <div class="onboarding-note">
@@ -312,12 +324,12 @@ async function loadNearbyAt(pos, showUserPin = false) {
         }, 280);
       }).addTo(layers.stops);
     });
-    out.innerHTML = `${guideBanner(2, "Choose a nearby stop", "Tap a stop to see its live routes and arrivals.")}` + stops.slice(0, 10).map((s) => `
+    out.innerHTML = `${guideBanner(2, t("stop"), t("stopHelp"))}` + stops.slice(0, 10).map((s) => `
       <div class="stop-card" id="near-stop-${esc(s.id)}">
         <button class="stop-name nearby-stop-open" data-show-stop="${esc(s.id)}">🚏 ${esc(s.name)} <span>Show arrivals ›</span></button>
         <div class="nearby-routes" data-stop-routes="${esc(s.id)}"><small>Select this bus stop to see buses.</small></div>
       </div>`).join("");
-    setGuideStep(2, "Choose a nearby stop");
+    setGuideStep(2, t("stop"));
     revealSheetTarget("#guide-step-2");
     out.querySelectorAll("[data-trip][data-stop]").forEach((b) => {
       b.onclick = () => openTrip(b.dataset.trip, b.dataset.stop || null);
@@ -364,8 +376,8 @@ async function showNearbyStop(stop) {
   try {
     const trips = await api(`/api/passing/${encodeURIComponent(stop.id)}`);
     document.querySelectorAll("#guide-step-3").forEach((banner) => banner.remove());
-    box.innerHTML = guideBanner(3, "Choose a bus route", "Tap the route you want to follow.") + nearbyTripsHTML(trips, stop.id, true);
-    setGuideStep(3, "Choose a bus route");
+    box.innerHTML = guideBanner(3, t("route"), t("routeHelp")) + nearbyTripsHTML(trips, stop.id, true);
+    setGuideStep(3, t("route"));
     revealSheetTarget(box.querySelector("#guide-step-3"));
     box.querySelectorAll("[data-trip]").forEach((button) => {
       button.onclick = () => openTrip(button.dataset.trip, button.dataset.stop);
@@ -465,7 +477,7 @@ function fmtAgo(unixSec) {
 function renderTripSheet() {
   const t = state.trip;
   if (!t) return;
-  setGuideStep(2, "Choose a route stop");
+  setGuideStep(2, t("routeStop"));
   state.selectedStop = null;
   state.visibleBusIds = null;
   updateBuses(t);
@@ -479,7 +491,7 @@ function renderTripSheet() {
       <button class="btn btn-ghost" style="width:auto;padding:8px 12px" id="btn-back">‹ Back</button>
     </div>
     ${telegramSetupHTML()}
-    ${guideBanner(2, "Choose a route stop", "Tap the stop where you want to meet the bus.")}
+    ${guideBanner(2, t("routeStop"), t("routeStopHelp"))}
     <small>Tap a stop below or tap its pin on the map. Buses will be sorted nearest-first afterward.</small>
     <div id="stop-list" class="route-stop-list">
       ${(t.stopList || []).length ? t.stopList.map((s) => `
@@ -538,7 +550,7 @@ function updateBusMotion(trip) {
 }
 
 function selectStop(stop) {
-  setGuideStep(4, "Choose a live bus");
+  setGuideStep(4, t("bus"));
   state.selectedStop = stop;
   rememberStopSelection(stop);
   state.selectedBus = null;
@@ -557,7 +569,7 @@ function selectStop(stop) {
       <button class="btn btn-ghost" style="width:auto;padding:8px 12px" id="btn-all-buses">All buses</button>
     </div>
     <div id="arrival-estimate" class="arrival-card"><small>Loading Namtang arrival estimate…</small></div>
-    ${guideBanner(4, "Choose a live bus", "Tap a bus below to open its live details.")}
+    ${guideBanner(4, t("bus"), t("busHelp"))}
     <div id="bus-list">
       ${buses.length ? buses.map((b) => busRowHTML(b, stop)).join("") : "<small>No live buses on this trip.</small>"}
     </div>
@@ -642,7 +654,7 @@ async function selectBus(busId, options = {}) {
   }
   if (changedBus || options.userAction) $("#sheet").classList.remove("collapsed");
   state.selectedBus = busId;
-  if (options.userAction) setGuideStep(5, "View bus and camera");
+  if (options.userAction) setGuideStep(5, t("view"));
   const selectionVersion = ++state.selectionVersion;
   state.follow = true;
   updateBuses(state.trip);
@@ -761,7 +773,7 @@ async function selectBus(busId, options = {}) {
         </button>`).join("")}</div>
     </div>` : "";
   detail.innerHTML = `
-    ${guideBanner(5, "View bus and camera", "Review the live bus details, then open the available traffic camera.")}
+    ${guideBanner(5, t("view"), t("viewHelp"))}
     <h2>Bus ${esc(plate)}</h2>
     ${state.selectedStop ? `<button class="btn btn-ghost btn-back-stop" id="btn-back-stop">‹ Other buses at ${esc(state.selectedStop.stopName)}</button>` : ""}
     ${busSwitcher}
@@ -1053,22 +1065,28 @@ function clearTripLayers() {
 /* ---------- wire up ---------- */
 $("#btn-home").onclick = () => { clearTripLayers(); renderHome(); };
 $("#btn-reset").onclick = () => {
-  if (!window.confirm("Start over from Step 1 and run the BMA camera test again? Your recent routes will be kept.")) return;
+  if (!window.confirm(t("reset"))) return;
   localStorage.removeItem(BMA_PREFLIGHT_KEY);
   localStorage.removeItem("lastStopSelection");
   localStorage.removeItem("bmaCameraNoticeSeen");
   location.reload();
 };
+$("#language-select").onchange = (event) => {
+  currentLang = event.target.value === "th" ? "th" : "en";
+  try { localStorage.setItem("buswatchLanguage", currentLang); } catch {}
+  location.reload();
+};
 $("#btn-about").onclick = () => {
-  setGuideStep(5, "About Bus-287");
+  const thai = currentLang === "th";
+  setGuideStep(5, thai ? "เกี่ยวกับ Bus-287" : "About Bus-287");
   setSheet(`
     <div class="about-copy">
-      <h2>About Bus-287</h2>
-      <p><b>Bus-287</b> is the short project nickname for Thai Bus Watch. It comes from the memorable repeated number in this service's address: <b>287287287.xyz</b>.</p>
-      <p>This is an independent experimental civic-tech project for viewing live Bangkok bus locations, nearby stops, arrival information, and links to public traffic-camera services.</p>
-      <p>It is not affiliated with or endorsed by Bangkok Metropolitan Administration or the public transport data providers it references.</p>
-      <button class="btn btn-ghost" id="btn-retest-camera">Retest BMA camera access</button>
-      <button class="btn btn-ghost" id="btn-about-close">Close About</button>
+      <h2>${thai ? "เกี่ยวกับ Bus-287" : "About Bus-287"}</h2>
+      <p>${thai ? "<b>Bus-287</b> เป็นชื่อย่อของโครงการ Thai Bus Watch มาจากเลขซ้ำที่จำง่ายในที่อยู่ <b>287287287.xyz</b>" : "<b>Bus-287</b> is the short project nickname for Thai Bus Watch. It comes from the memorable repeated number in this service's address: <b>287287287.xyz</b>."}</p>
+      <p>${thai ? "โครงการทดลองเทคโนโลยีเพื่อสังคมอิสระ สำหรับดูตำแหน่งรถโดยสาร ป้ายใกล้เคียง เวลาถึง และลิงก์กล้องจราจร" : "This is an independent experimental civic-tech project for viewing live Bangkok bus locations, nearby stops, arrival information, and links to public traffic-camera services."}</p>
+      <p>${thai ? "โครงการนี้ไม่ได้เป็นส่วนหนึ่งหรือได้รับการรับรองจากกรุงเทพมหานครหรือผู้ให้บริการข้อมูลขนส่ง" : "It is not affiliated with or endorsed by Bangkok Metropolitan Administration or the public transport data providers it references."}</p>
+      <button class="btn btn-ghost" id="btn-retest-camera">${thai ? "ทดสอบกล้อง BMA อีกครั้ง" : "Retest BMA camera access"}</button>
+      <button class="btn btn-ghost" id="btn-about-close">${thai ? "ปิด" : "Close About"}</button>
     </div>
   `);
   $("#btn-retest-camera").onclick = () => {
@@ -1087,7 +1105,7 @@ const sheetHandle = $("#sheet-handle");
 function updateSheetHandle() {
   const collapsed = sheet.classList.contains("collapsed");
   const step = state.guideStep;
-  sheetHandle.textContent = `Step ${step.number}/5 · ${step.label} · ${collapsed ? "▲ Open" : "▼ Hide"}`;
+  sheetHandle.textContent = `${t("step")} ${step.number}/5 · ${step.label} · ${collapsed ? `▲ ${t("open")}` : `▼ ${t("hide")}`}`;
   sheetHandle.setAttribute("aria-expanded", String(!collapsed));
   sheetHandle.setAttribute("aria-label", `Step ${step.number} of 5: ${step.label}. ${collapsed ? "Open" : "Hide"} panel`);
 }
@@ -1141,6 +1159,7 @@ $("#alert-use-me").onclick = async () => {
 };
 
 async function init() {
+  applyLanguage();
   await requireCameraPreflight();
   if (!await requirePriorityAccess()) return;
   // Wait for the first status response before drawing the home sheet. Without
