@@ -95,6 +95,7 @@ function rememberStopSelection(stop) {
 async function clearAppCache() {
   localStorage.removeItem("recents");
   localStorage.removeItem("lastStopSelection");
+  localStorage.removeItem("bmaCameraNoticeSeen");
   if ("caches" in window) {
     await Promise.all((await caches.keys()).map((key) => caches.delete(key)));
   }
@@ -162,6 +163,10 @@ function renderHome() {
   const recents = getRecents();
   setSheet(`
     ${telegramSetupHTML()}
+    <div class="onboarding-note">
+      <b>1. Select your nearest location first</b>
+      <span>Use your location or tap your own nearest point on the map. Then choose a bus stop and bus.</span>
+    </div>
     <button class="btn" id="btn-near">📍 Find routes near me</button>
     <div class="map-pick-hint">🖱️ Or click anywhere on the map to find the nearest bus stops there.</div>
     <h2>Open a route by trip ID</h2>
@@ -712,6 +717,19 @@ async function selectBus(busId, options = {}) {
     if (desktop) framePins(); else setTimeout(framePins, 320);
   };
   $("#btn-map-pins")?.addEventListener("click", showPins);
+  $("#camera-link")?.addEventListener("click", (event) => {
+    if (localStorage.getItem("bmaCameraNoticeSeen") === "1") return;
+    const proceed = window.confirm(
+      "BMA camera is a separate website. The first time, you must open and access the BMA traffic feed yourself. " +
+      "If the camera does not start, allow the BMA page in your browser, then return and tap this link again.\n\n" +
+      "Open BMA camera now?"
+    );
+    if (!proceed) {
+      event.preventDefault();
+      return;
+    }
+    localStorage.setItem("bmaCameraNoticeSeen", "1");
+  });
   $("#btn-prev-camera")?.addEventListener("click", () => {
     state.cameraIndexOffset = Math.max(0, state.cameraIndexOffset - 1);
     state.activeCameraId = null;
