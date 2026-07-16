@@ -3,7 +3,7 @@
 
 const BANGKOK = [13.7563, 100.5018];
 const REFRESH_MS = 5000;
-const APP_VERSION = "0.4.6";
+const APP_VERSION = "0.4.7";
 const BMA_PREFLIGHT_KEY = "bmaCameraPreflightV1";
 
 const state = {
@@ -1158,6 +1158,9 @@ function requireCameraPreflight() {
   } catch { /* continue with the one-time check */ }
   const overlay = $("#camera-preflight");
   const result = $("#preflight-result");
+  if (/iPhone|iPod/i.test(navigator.userAgent)) {
+    $("#iphone-browser-warning").classList.remove("hidden");
+  }
   overlay.classList.remove("hidden");
   return new Promise((resolve) => {
     $("#btn-test-bma").addEventListener("click", () => result.classList.remove("hidden"));

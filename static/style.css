@@ -284,6 +284,12 @@ input[type=text]:focus { border-color: #2f6fed; }
   background: #171b20; box-shadow: 0 16px 50px rgba(0,0,0,.6);
 }
 .preflight-card h1 { margin: 0 0 10px; font-size: 21px; }
+.browser-warning {
+  margin: 12px 0; padding: 12px; border-radius: 12px;
+  background: #3a2b13; border: 1px solid rgba(232,178,90,.4); color: #f2cf88;
+}
+.browser-warning b, .browser-warning span { display: block; }
+.browser-warning span { margin-top: 4px; font-size: 13px; line-height: 1.45; color: #d8c69f; }
 .preflight-card p { color: #cbd1d8; font-size: 14px; line-height: 1.5; }
 .preflight-steps {
   margin: 14px 0; padding-left: 28px; color: #cbd1d8;
