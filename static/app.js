@@ -3,7 +3,7 @@
 
 const BANGKOK = [13.7563, 100.5018];
 const REFRESH_MS = 5000;
-const APP_VERSION = "0.4.4";
+const APP_VERSION = "0.4.5";
 const BMA_PREFLIGHT_KEY = "bmaCameraPreflightV1";
 
 const state = {
@@ -24,6 +24,7 @@ const state = {
   alertDraft: null,      // {lat, lon, radiusM}
   tg: { configured: false, connected: false },
   access: { enabled: false, authorized: true, active: 0, maxUsers: 0, rank: 0 },
+  guideStep: { number: 1, label: "Choose a location" },
   refreshTimer: null,
   watchTimer: null,
   myPos: null,
@@ -75,6 +76,11 @@ async function api(path, opts) {
 function setSheet(html, expand = true) {
   sheetContent.innerHTML = html;
   if (expand) $("#sheet").classList.remove("collapsed");
+}
+
+function setGuideStep(number, label) {
+  state.guideStep = { number, label };
+  updateSheetHandle();
 }
 
 function revealSheetTarget(target, delay = 80) {
@@ -206,6 +212,7 @@ async function requirePriorityAccess() {
 
 /* ---------- home view ---------- */
 function renderHome() {
+  setGuideStep(1, "Choose a location");
   state.view = "home";
   stopRefresh();
   const recents = getRecents();
@@ -302,6 +309,7 @@ async function loadNearbyAt(pos, showUserPin = false) {
         <button class="stop-name nearby-stop-open" data-show-stop="${esc(s.id)}">🚏 ${esc(s.name)} <span>Show arrivals ›</span></button>
         <div class="nearby-routes" data-stop-routes="${esc(s.id)}"><small>Select this bus stop to see buses.</small></div>
       </div>`).join("");
+    setGuideStep(2, "Choose a nearby stop");
     if (showUserPin) revealSheetTarget("#nearby-out");
     out.querySelectorAll("[data-trip][data-stop]").forEach((b) => {
       b.onclick = () => openTrip(b.dataset.trip, b.dataset.stop || null);
@@ -348,6 +356,7 @@ async function showNearbyStop(stop) {
   try {
     const trips = await api(`/api/passing/${encodeURIComponent(stop.id)}`);
     box.innerHTML = nearbyTripsHTML(trips, stop.id, true);
+    setGuideStep(3, "Choose a bus route");
     revealSheetTarget(box);
     box.querySelectorAll("[data-trip]").forEach((button) => {
       button.onclick = () => openTrip(button.dataset.trip, button.dataset.stop);
@@ -447,6 +456,7 @@ function fmtAgo(unixSec) {
 function renderTripSheet() {
   const t = state.trip;
   if (!t) return;
+  setGuideStep(2, "Choose a route stop");
   state.selectedStop = null;
   state.visibleBusIds = null;
   updateBuses(t);
@@ -519,6 +529,7 @@ function updateBusMotion(trip) {
 }
 
 function selectStop(stop) {
+  setGuideStep(4, "Choose a live bus");
   state.selectedStop = stop;
   rememberStopSelection(stop);
   state.selectedBus = null;
@@ -621,6 +632,7 @@ async function selectBus(busId, options = {}) {
   }
   if (changedBus || options.userAction) $("#sheet").classList.remove("collapsed");
   state.selectedBus = busId;
+  if (options.userAction) setGuideStep(5, "View bus and camera");
   const selectionVersion = ++state.selectionVersion;
   state.follow = true;
   updateBuses(state.trip);
@@ -1043,6 +1055,7 @@ function clearTripLayers() {
 /* ---------- wire up ---------- */
 $("#btn-home").onclick = () => { clearTripLayers(); renderHome(); };
 $("#btn-about").onclick = () => {
+  setGuideStep(5, "About Bus-287");
   setSheet(`
     <div class="about-copy">
       <h2>About Bus-287</h2>
@@ -1068,8 +1081,10 @@ const sheet = $("#sheet");
 const sheetHandle = $("#sheet-handle");
 function updateSheetHandle() {
   const collapsed = sheet.classList.contains("collapsed");
-  sheetHandle.textContent = collapsed ? "▲ Open panel" : "▼ Hide panel";
+  const step = state.guideStep;
+  sheetHandle.textContent = `Step ${step.number}/5 · ${step.label} · ${collapsed ? "▲ Open" : "▼ Hide"}`;
   sheetHandle.setAttribute("aria-expanded", String(!collapsed));
+  sheetHandle.setAttribute("aria-label", `Step ${step.number} of 5: ${step.label}. ${collapsed ? "Open" : "Hide"} panel`);
 }
 let ignoreNextSheetClick = false;
 sheetHandle.onclick = () => {

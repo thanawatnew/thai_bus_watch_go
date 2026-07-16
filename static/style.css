@@ -78,8 +78,9 @@ html, body {
   touch-action: none;
   border: 0; border-radius: 18px 18px 0 0;
   background: #252b32; color: #f2f5f7;
-  font: inherit; font-size: 14px; font-weight: 700;
+  font: inherit; font-size: 13px; font-weight: 700;
   text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 #sheet-handle:focus-visible {
   outline: 3px solid #7fb8ff; outline-offset: -4px;
