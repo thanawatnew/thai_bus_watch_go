@@ -3,7 +3,7 @@
 
 const BANGKOK = [13.7563, 100.5018];
 const REFRESH_MS = 5000;
-const APP_VERSION = "0.5.6";
+const APP_VERSION = "0.5.7";
 const BMA_PREFLIGHT_KEY = "bmaCameraPreflightV1";
 const I18N = {
   en: { step:"Step", open:"Open", hide:"Hide", location:"Choose a location", locationHelp:"Use your location or tap your position on the map.", stop:"Choose a nearby stop", stopHelp:"Tap a stop to see its live routes and arrivals.", route:"Choose a bus route", routeHelp:"Tap the route you want to follow.", routeStop:"Choose a route stop", routeStopHelp:"Tap the stop where you want to meet the bus.", bus:"Choose a live bus", busHelp:"Tap a bus below to open its live details.", view:"View bus and camera", viewHelp:"Review the live bus details, then open the available traffic camera.", reset:"Start over from Step 1 and run the BMA camera test again? Your recent routes will be kept.", preflightTitle:"Test BMA camera access", iphoneTitle:"iPhone users: Firefox is recommended.", iphoneText:"Safari may not open BMA Traffic's external HTTP-only camera page reliably. Open Bus-287 in Firefox before running this test.", preflightIntro:"BMA Traffic is a separate, HTTP-only website. Its availability and content are controlled by BMA Traffic, not Bus-287.", preflightStep1:"1. Open the test: tap the blue BMA camera button below.", preflightStep2:"2. Allow the external page only if you accept opening BMA's HTTP website.", preflightStep3:"3. Check whether the BMA camera content appears.", preflightStep4:"4. Return to this Bus-287 browser tab.", preflightStep5:"5. Report Yes or No below to enter Bus Watch.", openBmaTest:"🎥 Open BMA camera test ↗", bmaWorkedQuestion:"Did the BMA camera page open correctly?", bmaYes:"Yes, camera worked — continue", bmaNo:"No — continue with bus tracking only", preflightDisclaimer:"By continuing, you understand that external camera access may be insecure, unavailable, or behave differently in each browser." },
@@ -31,6 +31,10 @@ Object.assign(I18N.en, {
   alertPlace: "🔔 Alert me when it reaches a place",
   bmaHelpTitle: "Camera did not open?", bmaHelpText: "Open the BMA camera page directly first, allow or start the camera feed there, then return to Bus-287 and run the test again.",
   openBmaAgain: "Open BMA camera page again ↗", continueWithoutCamera: "I understand — continue without cameras",
+  usageTitle: "How to use Bus-287", usageStep1: "1. Choose your location using GPS or by tapping the map.",
+  usageStep2: "2. Choose a nearby bus stop.", usageStep3: "3. Choose the bus route you want to follow.",
+  usageStep4: "4. Choose a live bus from the list.", usageStep5: "5. View live bus details and open an available BMA camera.",
+  usagePanelTip: "Use the labeled bar at the bottom to hide or reopen the panel while viewing the map.",
 });
 Object.assign(I18N.th, {
   resetLabel: "↻ รีเซ็ต", twoNearest: "รถที่กำลังวิ่งใกล้ที่สุด 2 คัน", allBuses: "รถทั้งหมด",
@@ -54,6 +58,10 @@ Object.assign(I18N.th, {
   alertPlace: "🔔 แจ้งเตือนเมื่อรถถึงสถานที่",
   bmaHelpTitle: "เปิดกล้องไม่ได้ใช่หรือไม่?", bmaHelpText: "ให้เปิดหน้ากล้อง BMA โดยตรงก่อน อนุญาตหรือเริ่มฟีดกล้องบนเว็บไซต์นั้น จากนั้นกลับมายัง Bus-287 แล้วทดสอบอีกครั้ง",
   openBmaAgain: "เปิดหน้ากล้อง BMA อีกครั้ง ↗", continueWithoutCamera: "เข้าใจแล้ว — ใช้งานต่อโดยไม่ใช้กล้อง",
+  usageTitle: "วิธีใช้งาน Bus-287", usageStep1: "1. เลือกตำแหน่งด้วย GPS หรือแตะบนแผนที่",
+  usageStep2: "2. เลือกป้ายรถโดยสารใกล้เคียง", usageStep3: "3. เลือกสายรถที่ต้องการติดตาม",
+  usageStep4: "4. เลือกรถที่กำลังวิ่งจากรายการ", usageStep5: "5. ดูรายละเอียดรถแบบสดและเปิดกล้อง BMA ที่มีอยู่",
+  usagePanelTip: "ใช้แถบที่มีป้ายกำกับด้านล่างเพื่อซ่อนหรือเปิดแผงขณะดูแผนที่",
 });
 let currentLang = (() => { try { return localStorage.getItem("buswatchLanguage") || (navigator.language?.startsWith("th") ? "th" : "en"); } catch { return "en"; } })();
 const t = (key) => I18N[currentLang]?.[key] || I18N.en[key] || key;

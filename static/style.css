@@ -315,6 +315,11 @@ input[type=text]:focus { border-color: #2f6fed; }
   background: #24211a; border: 1px solid rgba(232,178,90,.3);
 }
 .preflight-help p { margin: 6px 0; }
+.preflight-usage {
+  margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.1);
+}
+.preflight-usage h2 { margin: 0 0 8px; color: #e8eaed; font-size: 17px; }
+.preflight-usage p { margin-bottom: 0; }
 
 /* ---------- camera viewer ---------- */
 .cam-box {
