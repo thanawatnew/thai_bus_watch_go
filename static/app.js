@@ -627,14 +627,13 @@ async function selectBus(busId, options = {}) {
       }
       camHTML = `
         <h2>🎥 ${d.cameraSelection === "nearest" ? "Nearest" : "Upcoming"} traffic camera <small>· ${Math.round(d.cameraDistanceM)} m from bus · ${d.cameraOnRoute ? "on route" : "near route"}</small></h2>
-        <iframe id="bma-session-frame" class="hidden" title="BMA session"></iframe>
-        <div class="cam-box cam-client-box">
-          <iframe id="cam-frame" title="BMA traffic camera" loading="lazy"
-            data-camera-id="${esc(camId)}" data-player-url="${esc(d.nearestCamera.feed_url)}"></iframe>
-          <div class="cam-label">${esc(d.nearestCamera.name_th || d.nearestCamera.name_en || d.nearestCamera.id)}</div>
+        <div class="camera-link-info">
+          <b>${esc(d.nearestCamera.name_th || d.nearestCamera.name_en || d.nearestCamera.id)}</b>
+          <small>BMA camera ${esc(d.nearestCamera.id)} · stream ID ${esc(camId)}</small>
         </div>
-        <small class="cam-status" id="cam-status">Loading directly from BMA on this device…</small>
-        <a class="btn btn-ghost btn-direct-camera" href="${esc(d.nearestCamera.feed_url)}" target="_blank" rel="noopener">Open camera directly ↗</a>
+        <a id="camera-link" class="btn btn-ghost btn-direct-camera"
+          data-camera-id="${esc(camId)}" href="${esc(d.nearestCamera.feed_url)}"
+          target="_blank" rel="noopener">Open camera on BMA ↗</a>
         <div class="btn-row camera-nav">
           <button class="btn btn-ghost" id="btn-prev-camera" ${state.cameraIndexOffset <= 0 ? "disabled" : ""}>‹ Previous camera</button>
           <button class="btn btn-ghost" id="btn-next-camera" ${state.cameraIndexOffset >= cameraCandidates.length - 1 ? "disabled" : ""}>Next camera ›</button>
@@ -655,7 +654,7 @@ async function selectBus(busId, options = {}) {
     if (nextStop) nextStop.textContent = `${b.next_stop_name || "?"} (${Math.round(Number(b.distance_to_next_stop) || 0)} m)`;
     if (speed) speed.textContent = `${Math.round(Number(b.speed) || 0)} km/h`;
     if (updated) updated.textContent = fmtAgo(b.received);
-    const shownCamera = (document.getElementById("cam-img") || document.getElementById("cam-frame"))?.dataset.cameraId || null;
+    const shownCamera = document.getElementById("camera-link")?.dataset.cameraId || null;
     // Missing camera data means "keep what is already rendered", never
     // "remove the camera". BMA availability can fluctuate between refreshes.
     if (!camId || (shownCamera && String(camId) === shownCamera)) return;
@@ -713,20 +712,6 @@ async function selectBus(busId, options = {}) {
     if (desktop) framePins(); else setTimeout(framePins, 320);
   };
   $("#btn-map-pins")?.addEventListener("click", showPins);
-  document.querySelector(".cam-box")?.addEventListener("click", (event) => event.stopPropagation());
-  document.querySelector(".cam-box")?.addEventListener("pointerdown", (event) => event.stopPropagation());
-  const clientFrame = document.getElementById("cam-frame");
-  if (clientFrame) {
-    // First open BMA's index in the same third-party context to establish its
-    // ASP.NET session, then switch to the selected camera player.
-    const sessionFrame = document.getElementById("bma-session-frame");
-    sessionFrame.onload = () => {
-      clientFrame.src = clientFrame.dataset.playerUrl;
-      const status = document.getElementById("cam-status");
-      if (status) status.textContent = "Camera loads directly from BMA; bus tracking stays independent.";
-    };
-    sessionFrame.src = "http://www.bmatraffic.com/index.aspx";
-  }
   $("#btn-prev-camera")?.addEventListener("click", () => {
     state.cameraIndexOffset = Math.max(0, state.cameraIndexOffset - 1);
     state.activeCameraId = null;
