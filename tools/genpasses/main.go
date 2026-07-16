@@ -11,7 +11,29 @@ import (
 
 func main() {
 	count := flag.Int("count", 50, "number of ranked priority passes")
+	check := flag.String("check", "", "validate one pass without printing the pass database")
+	file := flag.String("file", "priority-passes.json", "pass database used by -check")
 	flag.Parse()
+	if *check != "" {
+		body, err := os.ReadFile(*file)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "cannot read pass file:", err)
+			os.Exit(2)
+		}
+		var passes []string
+		if err := json.Unmarshal(body, &passes); err != nil {
+			fmt.Fprintln(os.Stderr, "invalid pass file:", err)
+			os.Exit(2)
+		}
+		for index, pass := range passes {
+			if pass == *check {
+				fmt.Printf("valid priority pass; rank=%d of %d\n", index+1, len(passes))
+				return
+			}
+		}
+		fmt.Fprintln(os.Stderr, "invalid priority pass")
+		os.Exit(1)
+	}
 	if *count < 1 || *count > 10000 {
 		fmt.Fprintln(os.Stderr, "count must be between 1 and 10000")
 		os.Exit(2)

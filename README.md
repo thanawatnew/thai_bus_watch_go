@@ -98,6 +98,15 @@ passes (the first code has the highest priority):
 ./scripts/generate_priority_passes.sh 50 priority-passes.json
 ```
 
+Generate, validate one pass, or check live concurrent usage with the combined
+administration script:
+
+```sh
+./scripts/priority_pass_admin.sh generate 50 priority-passes.json
+./scripts/priority_pass_admin.sh check 'P01-…' priority-passes.json
+./scripts/priority_pass_admin.sh status http://149.118.52.77
+```
+
 Enable it when starting the server:
 
 ```sh
