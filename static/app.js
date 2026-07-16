@@ -3,6 +3,7 @@
 
 const BANGKOK = [13.7563, 100.5018];
 const REFRESH_MS = 5000;
+const APP_VERSION = "0.4.0";
 
 const state = {
   view: "home",          // home | trip | alert-pick
@@ -166,19 +167,22 @@ function renderHome() {
       <b>1. Select your nearest location first</b>
       <span>Use your location or tap your own nearest point on the map. Then choose a bus stop and bus.</span>
     </div>
-    <button class="btn" id="btn-near">📍 Find routes near me</button>
+    <button class="btn" id="btn-near">📍 Find nearest bus stops</button>
     <div class="map-pick-hint">🖱️ Or click anywhere on the map to find the nearest bus stops there.</div>
-    <h2>Open a route by trip ID</h2>
-    <div class="input-row">
-      <input type="text" id="trip-input" inputmode="numeric" placeholder="Trip ID, e.g. 7179">
-      <button class="btn" id="btn-open-trip">Go</button>
-    </div>
-    <small>Trip IDs come from <a href="https://namtang.otp.go.th" style="color:#7fb8ff">namtang.otp.go.th</a> — or just use “near me”.</small>
+    <details class="optional-route">
+      <summary>Optional: open a route by trip ID</summary>
+      <div class="input-row">
+        <input type="text" id="trip-input" inputmode="numeric" placeholder="Trip ID, e.g. 7179">
+        <button class="btn" id="btn-open-trip">Go</button>
+      </div>
+      <small>Only use this if you already know a trip ID from <a href="https://namtang.otp.go.th" style="color:#7fb8ff">namtang.otp.go.th</a>.</small>
+    </details>
     ${recents.length ? `<h2>Recent routes</h2><div class="chips">` +
       recents.map((r) => `<button class="route-chip" style="background:#2f6fed"
         data-trip="${esc(r.tripId)}">${esc(r.name)} → ${esc(r.headsign)}</button>`).join("") + `</div>` : ""}
     <div id="nearby-out"></div>
     <button class="btn btn-ghost btn-clear-cache" id="btn-clear-cache">🧹 Clear saved data & cache</button>
+    <small class="app-version">Thai Bus Watch v${APP_VERSION}</small>
   `);
 
   $("#btn-near").onclick = loadNearby;
@@ -239,10 +243,10 @@ async function loadNearbyAt(pos, showUserPin = false) {
         }, 280);
       }).addTo(layers.stops);
     });
-    out.innerHTML = `<h2>Nearby stops</h2>` + stops.slice(0, 10).map((s) => `
+    out.innerHTML = `<h2>2. Select a bus stop</h2><small>Choose your stop first; routes and live arrivals appear afterward.</small>` + stops.slice(0, 10).map((s) => `
       <div class="stop-card" id="near-stop-${esc(s.id)}">
         <button class="stop-name nearby-stop-open" data-show-stop="${esc(s.id)}">🚏 ${esc(s.name)} <span>Show arrivals ›</span></button>
-        <div class="nearby-routes" data-stop-routes="${esc(s.id)}">${nearbyTripsHTML(s.passingTrips || [], s.id, false)}</div>
+        <div class="nearby-routes" data-stop-routes="${esc(s.id)}"><small>Select this bus stop to see buses.</small></div>
       </div>`).join("");
     out.querySelectorAll("[data-trip][data-stop]").forEach((b) => {
       b.onclick = () => openTrip(b.dataset.trip, b.dataset.stop || null);

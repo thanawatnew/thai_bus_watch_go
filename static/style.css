@@ -259,6 +259,10 @@ input[type=text]:focus { border-color: #2f6fed; }
 }
 .onboarding-note b, .onboarding-note span { display: block; }
 .onboarding-note span { margin-top: 4px; color: #cbd1d8; font-size: 13px; line-height: 1.4; }
+.optional-route { margin: 15px 0 8px; }
+.optional-route summary { color: #aab2bb; cursor: pointer; font-size: 13px; }
+.optional-route .input-row { margin-top: 9px; }
+.app-version { display: block; margin-top: 12px; text-align: center; color: #77818b; }
 .camera-link-info { padding: 10px 0 2px; }
 .camera-link-info b, .camera-link-info small { display: block; }
 .camera-link-info small { margin-top: 3px; color: #aab2bb; overflow-wrap: anywhere; }
