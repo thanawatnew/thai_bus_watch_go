@@ -221,6 +221,7 @@ function renderHome() {
         data-trip="${esc(r.tripId)}">${esc(r.name)} → ${esc(r.headsign)}</button>`).join("") + `</div>` : ""}
     <div id="nearby-out"></div>
     <button class="btn btn-ghost btn-clear-cache" id="btn-clear-cache">🧹 Clear saved data & cache</button>
+    <div class="civic-tech-label">Independent experimental civic-tech project. Not affiliated with or endorsed by Bangkok Metropolitan Administration. Camera content remains on the official BMA Traffic service.</div>
     <small class="app-version">Version ${APP_VERSION}</small>
   `);
 
