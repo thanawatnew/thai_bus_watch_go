@@ -3,12 +3,24 @@
 
 const BANGKOK = [13.7563, 100.5018];
 const REFRESH_MS = 5000;
-const APP_VERSION = "0.5.0";
+const APP_VERSION = "0.5.1";
 const BMA_PREFLIGHT_KEY = "bmaCameraPreflightV1";
 const I18N = {
   en: { step:"Step", open:"Open", hide:"Hide", location:"Choose a location", locationHelp:"Use your location or tap your position on the map.", stop:"Choose a nearby stop", stopHelp:"Tap a stop to see its live routes and arrivals.", route:"Choose a bus route", routeHelp:"Tap the route you want to follow.", routeStop:"Choose a route stop", routeStopHelp:"Tap the stop where you want to meet the bus.", bus:"Choose a live bus", busHelp:"Tap a bus below to open its live details.", view:"View bus and camera", viewHelp:"Review the live bus details, then open the available traffic camera.", reset:"Start over from Step 1 and run the BMA camera test again? Your recent routes will be kept.", preflightTitle:"Test BMA camera access", iphoneTitle:"iPhone users: Firefox is recommended.", iphoneText:"Safari may not open BMA Traffic's external HTTP-only camera page reliably. Open Bus-287 in Firefox before running this test.", preflightIntro:"BMA Traffic is a separate, HTTP-only website. Its availability and content are controlled by BMA Traffic, not Bus-287.", preflightStep1:"1. Open the test: tap the blue BMA camera button below.", preflightStep2:"2. Allow the external page only if you accept opening BMA's HTTP website.", preflightStep3:"3. Check whether the BMA camera content appears.", preflightStep4:"4. Return to this Bus-287 browser tab.", preflightStep5:"5. Report Yes or No below to enter Bus Watch.", openBmaTest:"🎥 Open BMA camera test ↗", bmaWorkedQuestion:"Did the BMA camera page open correctly?", bmaYes:"Yes, camera worked — continue", bmaNo:"No — continue with bus tracking only", preflightDisclaimer:"By continuing, you understand that external camera access may be insecure, unavailable, or behave differently in each browser." },
   th: { step:"ขั้นตอน", open:"เปิด", hide:"ซ่อน", location:"เลือกตำแหน่ง", locationHelp:"ใช้ตำแหน่งปัจจุบันหรือแตะตำแหน่งบนแผนที่", stop:"เลือกป้ายใกล้เคียง", stopHelp:"แตะป้ายเพื่อดูสายรถและเวลาถึงแบบสด", route:"เลือกสายรถโดยสาร", routeHelp:"แตะสายรถที่ต้องการติดตาม", routeStop:"เลือกป้ายในเส้นทาง", routeStopHelp:"แตะป้ายที่คุณต้องการขึ้นรถ", bus:"เลือกรถที่กำลังวิ่ง", busHelp:"แตะรถด้านล่างเพื่อดูรายละเอียดสด", view:"ดูรถและกล้อง", viewHelp:"ดูรายละเอียดรถ แล้วเปิดกล้องจราจรที่มีอยู่", reset:"เริ่มใหม่จากขั้นตอนที่ 1 และทดสอบกล้อง BMA อีกครั้งหรือไม่? รายการเส้นทางล่าสุดจะยังอยู่", preflightTitle:"ทดสอบการเข้าถึงกล้อง BMA", iphoneTitle:"ผู้ใช้ iPhone: แนะนำ Firefox", iphoneText:"Safari อาจเปิดหน้ากล้อง HTTP ของ BMA ได้ไม่สมบูรณ์ กรุณาใช้ Firefox", preflightIntro:"BMA Traffic เป็นเว็บไซต์ HTTP ภายนอก ซึ่งไม่ได้ควบคุมโดย Bus-287", preflightStep1:"1. แตะปุ่มสีน้ำเงินเพื่อเปิดหน้าทดสอบกล้อง BMA", preflightStep2:"2. อนุญาตหน้าเว็บภายนอกเมื่อคุณยอมรับการเปิดเว็บไซต์ HTTP", preflightStep3:"3. ตรวจสอบว่าภาพจากกล้อง BMA แสดงหรือไม่", preflightStep4:"4. กลับมายังแท็บ Bus-287", preflightStep5:"5. ตอบว่าใช่หรือไม่ใช่เพื่อเข้าใช้งาน", openBmaTest:"🎥 เปิดหน้าทดสอบกล้อง BMA ↗", bmaWorkedQuestion:"หน้ากล้อง BMA เปิดได้ถูกต้องหรือไม่?", bmaYes:"ใช่ กล้องใช้งานได้ — ต่อไป", bmaNo:"ไม่ — ใช้เฉพาะการติดตามรถ", preflightDisclaimer:"เมื่อดำเนินการต่อ คุณเข้าใจว่ากล้องภายนอกอาจไม่ปลอดภัยหรือไม่พร้อมใช้งาน" }
 };
+Object.assign(I18N.en, {
+  resetLabel: "↻ Reset", twoNearest: "Two nearest live buses", allBuses: "All buses",
+  noGps: "No buses reporting GPS right now.", noApproaching: "No approaching bus estimate is available.",
+  noLiveTrip: "No live buses on this trip.", loadingArrival: "Loading arrival estimate…",
+  showArrivals: "Show arrivals ›", selectStopBuses: "Select this bus stop to see buses.",
+});
+Object.assign(I18N.th, {
+  resetLabel: "↻ รีเซ็ต", twoNearest: "รถที่กำลังวิ่งใกล้ที่สุด 2 คัน", allBuses: "รถทั้งหมด",
+  noGps: "ขณะนี้ไม่มีรถส่งข้อมูล GPS", noApproaching: "ไม่มีข้อมูลประมาณเวลาของรถที่กำลังเข้าใกล้",
+  noLiveTrip: "ไม่มีรถที่กำลังวิ่งในเที่ยวนี้", loadingArrival: "กำลังโหลดเวลาถึงโดยประมาณ…",
+  showArrivals: "ดูรถที่จะมาถึง ›", selectStopBuses: "เลือกป้ายนี้เพื่อดูรถโดยสาร",
+});
 let currentLang = (() => { try { return localStorage.getItem("buswatchLanguage") || (navigator.language?.startsWith("th") ? "th" : "en"); } catch { return "en"; } })();
 const t = (key) => I18N[currentLang]?.[key] || I18N.en[key] || key;
 function applyLanguage() {
@@ -165,11 +177,12 @@ async function refreshTelegram() {
   } catch { /* server unreachable; keep last */ }
   const pill = $("#tg-pill");
   if (state.tg.connected) {
+    pill.classList.remove("hidden");
     pill.className = "pill pill-on";
     pill.textContent = "🔔 on";
   } else {
-    pill.className = "pill pill-off";
-    pill.textContent = state.tg.configured ? "🔔 connect" : "🔔 off";
+    pill.className = "pill pill-off hidden";
+    pill.textContent = "";
   }
 }
 
@@ -326,8 +339,8 @@ async function loadNearbyAt(pos, showUserPin = false) {
     });
     out.innerHTML = `${guideBanner(2, t("stop"), t("stopHelp"))}` + stops.slice(0, 10).map((s) => `
       <div class="stop-card" id="near-stop-${esc(s.id)}">
-        <button class="stop-name nearby-stop-open" data-show-stop="${esc(s.id)}">🚏 ${esc(s.name)} <span>Show arrivals ›</span></button>
-        <div class="nearby-routes" data-stop-routes="${esc(s.id)}"><small>Select this bus stop to see buses.</small></div>
+        <button class="stop-name nearby-stop-open" data-show-stop="${esc(s.id)}">🚏 ${esc(s.name)} <span>${t("showArrivals")}</span></button>
+        <div class="nearby-routes" data-stop-routes="${esc(s.id)}"><small>${t("selectStopBuses")}</small></div>
       </div>`).join("");
     setGuideStep(2, t("stop"));
     revealSheetTarget("#guide-step-2");
@@ -565,13 +578,13 @@ function selectStop(stop) {
   setSheet(`
     <div style="display:flex;align-items:center;gap:10px">
       <div style="font-size:24px">🚏</div>
-      <div style="flex:1;min-width:0"><b>${esc(stop.stopName)}</b><br><small>Two nearest live buses</small></div>
-      <button class="btn btn-ghost" style="width:auto;padding:8px 12px" id="btn-all-buses">All buses</button>
+      <div style="flex:1;min-width:0"><b>${esc(stop.stopName)}</b><br><small>${t("twoNearest")}</small></div>
+      <button class="btn btn-ghost" style="width:auto;padding:8px 12px" id="btn-all-buses">${t("allBuses")}</button>
     </div>
-    <div id="arrival-estimate" class="arrival-card"><small>Loading Namtang arrival estimate…</small></div>
+    <div id="arrival-estimate" class="arrival-card"><small>${t("loadingArrival")}</small></div>
     ${guideBanner(4, t("bus"), t("busHelp"))}
     <div id="bus-list">
-      ${buses.length ? buses.map((b) => busRowHTML(b, stop)).join("") : "<small>No live buses on this trip.</small>"}
+      ${buses.length ? buses.map((b) => busRowHTML(b, stop)).join("") : `<small>${t("noLiveTrip")}</small>`}
     </div>
     <div id="bus-detail"></div>`);
   $("#btn-all-buses").onclick = () => { state.selectedStop = null; renderTripSheet(); };
@@ -603,7 +616,7 @@ async function loadArrivalEstimate(stop) {
     box.innerHTML = first
       ? `<div><span class="arrival-icon">⏱️</span><b>${eta}</b> <small>· Namtang estimate</small></div>
          <div class="arrival-bus">Next: bus ${esc(first.id.split(" ")[0])}${first.is_approaching_stop ? " · approaching" : ""}</div>`
-      : `<small>No approaching bus estimate is available.</small>`;
+      : `<small>${t("noApproaching")}</small>`;
   } catch {
     box.innerHTML = `<small>Namtang arrival estimate is temporarily unavailable.</small>`;
   }
@@ -1023,7 +1036,7 @@ function startRefresh() {
           ? [...(trip.gpsList || [])].sort((a, b) => busDistanceFromStop(a, state.selectedStop) - busDistanceFromStop(b, state.selectedStop)).slice(0, 2)
           : (trip.gpsList || []);
         list.innerHTML = buses.map((b) => busRowHTML(b, state.selectedStop && !state.selectedBus ? state.selectedStop : null)).join("") ||
-          `<small>No buses reporting GPS right now.</small>`;
+          `<small>${t("noGps")}</small>`;
         bindBusRows();
       }
       // Refresh the selected bus's speed, next stop, position-dependent camera,
