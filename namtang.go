@@ -78,14 +78,28 @@ func (b BusGPS) BestLon() float64 {
 }
 
 type Trip struct {
-	TripID         int64    `json:"tripId"`
-	TripHeadsign   string   `json:"tripHeadsign"`
-	RouteShortName string   `json:"routeShortName"`
-	RouteLongName  string   `json:"routeLongName"`
-	RouteColor     string   `json:"routeColor"`
-	StopList       []Stop   `json:"stopList"`
-	ShapeGeom      []LatLon `json:"shapeGeom"`
-	GpsList        []BusGPS `json:"gpsList"`
+	TripID               int64     `json:"tripId"`
+	TripHeadsign         string    `json:"tripHeadsign"`
+	RouteShortName       string    `json:"routeShortName"`
+	RouteLongName        string    `json:"routeLongName"`
+	RouteColor           string    `json:"routeColor"`
+	StopList             []Stop    `json:"stopList"`
+	ShapeGeom            []LatLon  `json:"shapeGeom"`
+	GpsList              []BusGPS  `json:"gpsList"`
+	AirCondition         bool      `json:"airCondition"`
+	WheelchairAccessible bool      `json:"wheelchairAccessible"`
+	VehicleList          []Vehicle `json:"vehicleList"`
+}
+
+type Vehicle struct {
+	Type                 string `json:"type"`
+	SubType              string `json:"subType"`
+	WorkingHours         string `json:"workingHours"`
+	WaitingSpan          string `json:"waitingSpan"`
+	Price                string `json:"price"`
+	WheelchairAccessible bool   `json:"wheelchairAccessible"`
+	AirCondition         bool   `json:"airCondition"`
+	AgencyName           string `json:"agencyName"`
 }
 
 type namtangEnvelope struct {
@@ -95,13 +109,15 @@ type namtangEnvelope struct {
 }
 
 type PassingTrip struct {
-	TripID        int64  `json:"tripId"`
-	Name          string `json:"name"`
-	RouteLongName string `json:"routeLongName"`
-	TripHeadsign  string `json:"tripHeadsign"`
-	Color         string `json:"color"`
-	AirCondition  bool   `json:"airCondition"`
-	HasGps        bool   `json:"hasGps"`
+	TripID        int64     `json:"tripId"`
+	Name          string    `json:"name"`
+	RouteLongName string    `json:"routeLongName"`
+	TripHeadsign  string    `json:"tripHeadsign"`
+	Color         string    `json:"color"`
+	AirCondition  bool      `json:"airCondition"`
+	HasGps        bool      `json:"hasGps"`
+	GpsList       []BusGPS  `json:"gpsList"`
+	WaitTime      FlexFloat `json:"waitTime"`
 }
 
 type NearbyStop struct {
@@ -145,6 +161,15 @@ func GetNearbyStops(ctx context.Context, lat, lon string) ([]NearbyStop, error) 
 		return nil, err
 	}
 	return stops, nil
+}
+
+func GetPassingTrips(ctx context.Context, stopID string) ([]PassingTrip, error) {
+	var trips []PassingTrip
+	apiURL := fmt.Sprintf("https://namtang-api.otp.go.th/front/passingtrips/%s?locale=en", url.PathEscape(stopID))
+	if err := fetchNamtang(ctx, apiURL, &trips); err != nil {
+		return nil, err
+	}
+	return trips, nil
 }
 
 // FindBus locates a bus in a trip's gpsList by fuzzy plate match,

@@ -296,7 +296,7 @@ func (m *WatchManager) poll(ctx context.Context, w *Watch) bool {
 		}
 	}
 
-	go m.checkCameraPass(w, lat, lon)
+	go m.checkCameraPass(w, lat, lon, trip.ShapeGeom)
 
 	if w.Alert != nil && !alertFired {
 		dist := HaversineMeters(lat, lon, w.Alert.Lat, w.Alert.Lon)
@@ -330,10 +330,10 @@ func (m *WatchManager) poll(ctx context.Context, w *Watch) bool {
 }
 
 // checkCameraPass sends a traffic-camera snapshot to Telegram when the bus
-// passes close to a BMA camera — with an optional Claude vision verdict on
-// whether the bus is actually visible in the frame. Runs in its own goroutine
-// so slow camera/AI calls never delay the tracking loop.
-func (m *WatchManager) checkCameraPass(w *Watch, lat, lon float64) {
+// passes close to a BMA camera, with a local color/shape verdict on whether a
+// bus is visible in the frame. Runs in its own goroutine so camera calls never
+// delay the tracking loop.
+func (m *WatchManager) checkCameraPass(w *Watch, lat, lon float64, shape []LatLon) {
 	if !m.tg.Ready() {
 		return
 	}
@@ -345,7 +345,19 @@ func (m *WatchManager) checkCameraPass(w *Watch, lat, lon float64) {
 	if err != nil || len(cameras) == 0 {
 		return
 	}
-	cam, dist := NearestCamera(lat, lon, cameras)
+	if routeCameras := CamerasNearShape(cameras, shape, 120); len(routeCameras) > 0 {
+		cameras = routeCameras
+	}
+	w.mu.Lock()
+	heading := 0.0
+	if w.LastSeen != nil {
+		heading = float64(w.LastSeen.Heading)
+	}
+	w.mu.Unlock()
+	cam, dist, ahead := UpcomingCamera(lat, lon, heading, cameras)
+	if !ahead {
+		return // never send a camera the bus has already passed
+	}
 	if dist > cameraPassRadiusM {
 		return
 	}
@@ -370,19 +382,17 @@ func (m *WatchManager) checkCameraPass(w *Watch, lat, lon float64) {
 	caption := fmt.Sprintf("🎥 Bus %s should be passing camera %s now (%.0f m away)\n%s",
 		w.BusID, cam.ID, dist, orDefault(cam.NameTH, cam.NameEN))
 
-	if aiEnabled() {
-		if v, err := CheckCameraForBus(ctx, frame, w.RouteName, w.Headsign, w.fullBusID); err == nil {
-			verdict := map[string]string{"yes": "✅ likely your bus", "no": "❌ doesn't look like your bus", "unsure": "🤔 can't tell"}[v.LikelyMatch]
-			if verdict == "" {
-				verdict = "🤔 can't tell"
-			}
-			if !v.BusVisible {
-				verdict = "🚫 no bus visible in frame"
-			}
-			caption += fmt.Sprintf("\n\n🤖 AI check: %s\n%s", verdict, v.Description)
-		} else {
-			log.Printf("watch %s: AI camera check failed: %v", w.ID, err)
+	if v, err := CheckCameraForBus(frame, w.RouteName, w.Headsign, w.fullBusID); err == nil {
+		verdict := map[string]string{"yes": "✅ likely your bus", "no": "❌ doesn't look like your bus", "unsure": "🤔 can't tell"}[v.LikelyMatch]
+		if verdict == "" {
+			verdict = "🤔 can't tell"
 		}
+		if !v.BusVisible {
+			verdict = "🚫 no bus visible in frame"
+		}
+		caption += fmt.Sprintf("\n\n🔎 Local check: %s (%.0f%%)\n%s", verdict, v.Confidence*100, v.Description)
+	} else {
+		log.Printf("watch %s: local camera check failed: %v", w.ID, err)
 	}
 
 	if err := m.tg.SendPhoto(ctx, frame, caption); err != nil {

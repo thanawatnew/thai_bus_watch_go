@@ -2,13 +2,22 @@
 "use strict";
 
 const BANGKOK = [13.7563, 100.5018];
-const REFRESH_MS = 12000;
+const REFRESH_MS = 5000;
 
 const state = {
   view: "home",          // home | trip | alert-pick
   tripId: null,
   trip: null,
   selectedBus: null,     // bus id string
+  selectedStop: null,
+  visibleBusIds: null,
+  busMotion: {},
+  selectionVersion: 0,  // invalidates slower responses from earlier clicks
+  activeCameraBus: null,
+  activeCameraId: null,
+  pendingCameraId: null,
+  cameraHandoffTimer: null,
+  cameraIndexOffset: 0,
   follow: false,
   alertDraft: null,      // {lat, lon, radiusM}
   tg: { configured: false, connected: false },
@@ -30,6 +39,7 @@ const layers = {
   route: L.layerGroup().addTo(map),
   stops: L.layerGroup().addTo(map),
   buses: L.layerGroup().addTo(map),
+  camera: L.layerGroup().addTo(map),
   alert: L.layerGroup().addTo(map),
   me: L.layerGroup().addTo(map),
 };
@@ -72,6 +82,26 @@ function addRecent(tripId, name, headsign) {
   const recents = getRecents().filter((r) => r.tripId !== tripId);
   recents.unshift({ tripId, name, headsign });
   localStorage.setItem("recents", JSON.stringify(recents.slice(0, 8)));
+}
+
+function getLastStopSelection() {
+  try { return JSON.parse(localStorage.getItem("lastStopSelection") || "null"); } catch { return null; }
+}
+
+function rememberStopSelection(stop) {
+  localStorage.setItem("lastStopSelection", JSON.stringify({ tripId: state.tripId, stopId: stop.stopId }));
+}
+
+async function clearAppCache() {
+  localStorage.removeItem("recents");
+  localStorage.removeItem("lastStopSelection");
+  if ("caches" in window) {
+    await Promise.all((await caches.keys()).map((key) => caches.delete(key)));
+  }
+  if ("serviceWorker" in navigator) {
+    await Promise.all((await navigator.serviceWorker.getRegistrations()).map((r) => r.unregister()));
+  }
+  location.reload();
 }
 
 function geolocate() {
@@ -133,6 +163,7 @@ function renderHome() {
   setSheet(`
     ${telegramSetupHTML()}
     <button class="btn" id="btn-near">📍 Find routes near me</button>
+    <div class="map-pick-hint">🖱️ Or click anywhere on the map to find the nearest bus stops there.</div>
     <h2>Open a route by trip ID</h2>
     <div class="input-row">
       <input type="text" id="trip-input" inputmode="numeric" placeholder="Trip ID, e.g. 7179">
@@ -143,9 +174,11 @@ function renderHome() {
       recents.map((r) => `<button class="route-chip" style="background:#2f6fed"
         data-trip="${esc(r.tripId)}">${esc(r.name)} → ${esc(r.headsign)}</button>`).join("") + `</div>` : ""}
     <div id="nearby-out"></div>
+    <button class="btn btn-ghost btn-clear-cache" id="btn-clear-cache">🧹 Clear saved data & cache</button>
   `);
 
   $("#btn-near").onclick = loadNearby;
+  $("#btn-clear-cache").onclick = clearAppCache;
   $("#btn-open-trip").onclick = () => {
     const v = $("#trip-input").value.trim();
     if (v) openTrip(v);
@@ -168,8 +201,19 @@ async function loadNearby() {
     out.innerHTML = `<h2>Nearby stops</h2><small>⚠️ Couldn't get your location. Allow location access in Settings → Safari, or enter a trip ID above.</small>`;
     return;
   }
-  showMe(pos);
-  map.setView(pos, 16);
+  loadNearbyAt(pos, true);
+}
+
+async function loadNearbyAt(pos, showUserPin = false) {
+  const out = $("#nearby-out");
+  if (!out || state.view !== "home") return;
+  if (showUserPin) showMe(pos);
+  else {
+    layers.me.clearLayers();
+    L.circleMarker(pos, { radius: 9, color: "#fff", weight: 2, fillColor: "#8b5cf6", fillOpacity: 1 })
+      .bindTooltip("Your selected location", { permanent: false }).addTo(layers.me);
+  }
+  map.setView(pos, Math.max(map.getZoom(), 16));
   out.innerHTML = `<h2>Nearby stops</h2><small>Loading routes…</small>`;
   try {
     const stops = await api(`/api/nearby?lat=${pos[0]}&lon=${pos[1]}`);
@@ -177,37 +221,103 @@ async function loadNearby() {
       out.innerHTML = `<h2>Nearby stops</h2><small>No stops found near you.</small>`;
       return;
     }
-    out.innerHTML = `<h2>Nearby stops</h2>` + stops.slice(0, 10).map((s) => `
-      <div class="stop-card">
-        <div class="stop-name">🚏 ${esc(s.name)}</div>
-        <div class="chips">${(s.passingTrips || []).map((t) => `
-          <button class="route-chip ${t.hasGps ? "" : "no-gps"}"
-            style="background:#${esc(t.color || "555")}"
-            data-trip="${t.tripId}" ${t.hasGps ? "" : "disabled"}
-            title="${esc(t.routeLongName)}">${esc(t.name)}</button>`).join("")}
-        </div>
-      </div>`).join("");
-    out.querySelectorAll(".route-chip[data-trip]").forEach((b) => {
-      b.onclick = () => openTrip(b.dataset.trip);
+    layers.stops.clearLayers();
+    stops.slice(0, 10).forEach((s) => {
+      if (!s.location?.lat || !s.location?.lon) return;
+      L.circleMarker([s.location.lat, s.location.lon], {
+        radius: 7, color: "#fff", weight: 2, fillColor: "#e8b25a", fillOpacity: 1,
+        bubblingMouseEvents: false,
+      }).bindTooltip(esc(s.name)).on("click", () => {
+        $("#sheet").classList.remove("collapsed");
+        showNearbyStop(s);
+        setTimeout(() => {
+          document.getElementById(`near-stop-${s.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 280);
+      }).addTo(layers.stops);
     });
+    out.innerHTML = `<h2>Nearby stops</h2>` + stops.slice(0, 10).map((s) => `
+      <div class="stop-card" id="near-stop-${esc(s.id)}">
+        <button class="stop-name nearby-stop-open" data-show-stop="${esc(s.id)}">🚏 ${esc(s.name)} <span>Show arrivals ›</span></button>
+        <div class="nearby-routes" data-stop-routes="${esc(s.id)}">${nearbyTripsHTML(s.passingTrips || [], s.id, false)}</div>
+      </div>`).join("");
+    out.querySelectorAll("[data-trip][data-stop]").forEach((b) => {
+      b.onclick = () => openTrip(b.dataset.trip, b.dataset.stop || null);
+    });
+    out.querySelectorAll("[data-show-stop]").forEach((button) => {
+      button.onclick = () => showNearbyStop(stops.find((s) => String(s.id) === button.dataset.showStop));
+    });
+    if (!showUserPin && !window.matchMedia("(min-width: 760px)").matches) {
+      // Give the map back to the user after a manual location pick so the
+      // nearby stop pins are not hidden behind the iPhone sheet.
+      $("#sheet").classList.add("collapsed");
+    }
   } catch (e) {
     out.innerHTML = `<h2>Nearby stops</h2><small>⚠️ ${esc(e.message)}</small>`;
   }
 }
 
+function arrivalText(waitTime) {
+  const seconds = Number(waitTime) || 0;
+  if (seconds <= 0) return "Live time unavailable";
+  if (seconds > 3600) return ">1 hr";
+  return `${Math.max(1, Math.ceil(seconds / 60))} min`;
+}
+
+function nearbyTripsHTML(trips, stopId, live) {
+  const available = (trips || []).filter((t) => t.hasGps);
+  if (!available.length) return `<small>No live buses currently serve this stop.</small>`;
+  return available.map((t) => `
+    <button class="nearby-route-card" data-trip="${esc(t.tripId)}" data-stop="${esc(stopId)}">
+      <span class="nearby-route-number" style="background:#${esc(t.color || "555")}">${esc(t.name)}</span>
+      <span class="nearby-route-info">
+        <b>${esc(t.tripHeadsign)} <small>(${t.airCondition ? "Air Condition" : "Ordinary Standard 3"})</small></b>
+        <span>${esc(t.routeLongName)}</span>
+      </span>
+      <strong>${live ? esc(arrivalText(t.waitTime)) : "Select route"}</strong>
+    </button>`).join("");
+}
+
+async function showNearbyStop(stop) {
+  if (!stop) return;
+  const box = document.querySelector(`[data-stop-routes="${CSS.escape(String(stop.id))}"]`);
+  if (!box) return;
+  box.innerHTML = `<small>Loading live arrivals for ${esc(stop.name)}…</small>`;
+  try {
+    const trips = await api(`/api/passing/${encodeURIComponent(stop.id)}`);
+    box.innerHTML = nearbyTripsHTML(trips, stop.id, true);
+    box.querySelectorAll("[data-trip]").forEach((button) => {
+      button.onclick = () => openTrip(button.dataset.trip, button.dataset.stop);
+    });
+  } catch (e) {
+    box.innerHTML = `<small>⚠️ ${esc(e.message)}</small>`;
+  }
+}
+
+map.on("click", (e) => {
+  if (state.view === "home") loadNearbyAt([e.latlng.lat, e.latlng.lng]);
+});
+
 /* ---------- trip view ---------- */
-async function openTrip(tripId) {
+async function openTrip(tripId, preferredStopId = null) {
   state.view = "trip";
   state.tripId = String(tripId);
   state.selectedBus = null;
+  state.selectedStop = null;
+  state.visibleBusIds = null;
   state.follow = false;
   setSheet(`<h2>Loading trip ${esc(tripId)}…</h2>`);
   try {
     const trip = await api(`/api/trip/${encodeURIComponent(tripId)}`);
     state.trip = trip;
     addRecent(state.tripId, trip.routeShortName, trip.tripHeadsign);
-    drawTrip(trip, true);
-    renderTripSheet();
+    drawTrip(trip, false);
+    const remembered = getLastStopSelection();
+    const stopToRestore = preferredStopId || (String(remembered?.tripId) === String(tripId) ? remembered.stopId : null);
+    const preferredStop = stopToRestore
+      ? (trip.stopList || []).find((s) => String(s.stopId) === String(stopToRestore))
+      : null;
+    if (preferredStop) selectStop(preferredStop);
+    else renderTripSheet();
     startRefresh();
   } catch (e) {
     setSheet(`<h2>⚠️ ${esc(e.message)}</h2><button class="btn btn-ghost" onclick="renderHome()">Back</button>`);
@@ -228,7 +338,7 @@ function drawTrip(trip, fit) {
   (trip.stopList || []).forEach((s) => {
     L.circleMarker([s.location.lat, s.location.lon], {
       radius: 4, color: "#fff", weight: 1.5, fillColor: color, fillOpacity: 0.9,
-    }).bindPopup(esc(s.stopName)).addTo(layers.stops);
+    }).bindTooltip(esc(s.stopName)).on("click", () => selectStop(s)).addTo(layers.stops);
   });
 
   updateBuses(trip);
@@ -236,7 +346,7 @@ function drawTrip(trip, fit) {
 
 function updateBuses(trip) {
   const seen = new Set();
-  (trip.gpsList || []).forEach((b) => {
+  (trip.gpsList || []).filter((b) => !state.visibleBusIds || state.visibleBusIds.has(b.id)).forEach((b) => {
     const lat = Number(b.snapped_lat) || Number(b.lat);
     const lon = Number(b.snapped_lon) || Number(b.lon);
     if (!lat || !lon) return;
@@ -252,7 +362,7 @@ function updateBuses(trip) {
       busMarkers[b.id] = L.marker([lat, lon], {
         icon: L.divIcon({ html, className: "", iconSize: [30, 40], iconAnchor: [15, 20] }),
         zIndexOffset: 500,
-      }).on("click", () => selectBus(b.id)).addTo(layers.buses);
+      }).on("click", () => selectBus(b.id, { userAction: true })).addTo(layers.buses);
     }
     if (sel && state.follow) map.panTo([lat, lon]);
   });
@@ -273,50 +383,180 @@ function fmtAgo(unixSec) {
 function renderTripSheet() {
   const t = state.trip;
   if (!t) return;
-  const buses = t.gpsList || [];
+  state.selectedStop = null;
+  state.visibleBusIds = null;
+  updateBuses(t);
   setSheet(`
     <div style="display:flex;align-items:center;gap:10px">
       <span class="route-chip" style="background:#${esc(t.routeColor || "555")};cursor:default">${esc(t.routeShortName)}</span>
       <div style="flex:1;min-width:0">
         <div style="font-weight:600">→ ${esc(t.tripHeadsign)}</div>
-        <small>${esc(t.routeLongName)}</small>
+        <small>${esc(t.routeLongName)} · Trip ID ${esc(state.tripId)}</small><br>${tripFeatureHTML(t)}
       </div>
       <button class="btn btn-ghost" style="width:auto;padding:8px 12px" id="btn-back">‹ Back</button>
     </div>
     ${telegramSetupHTML()}
-    <h2>${buses.length} bus${buses.length === 1 ? "" : "es"} live — tap one to track</h2>
-    <div id="bus-list">
-      ${buses.length ? buses.map((b) => busRowHTML(b)).join("")
-        : `<small>No buses reporting GPS on this route right now. Try the opposite direction (routes usually have two trip IDs) or come back later.</small>`}
+    <h2>1. Choose your bus stop</h2>
+    <small>Tap a stop below or tap its pin on the map. Buses will be sorted nearest-first afterward.</small>
+    <div id="stop-list" class="route-stop-list">
+      ${(t.stopList || []).length ? t.stopList.map((s) => `
+        <button class="route-stop-button" data-stop-id="${esc(s.stopId)}">
+          <span>🚏</span><span>${esc(s.stopName)}</span><span>›</span>
+        </button>`).join("") : `<small>No stops are available for this trip.</small>`}
     </div>
     <div id="bus-detail"></div>
   `);
   $("#btn-back").onclick = () => { clearTripLayers(); renderHome(); };
-  bindBusRows();
+  sheetContent.querySelectorAll(".route-stop-button").forEach((button) => {
+    button.onclick = () => {
+      const stop = (t.stopList || []).find((s) => String(s.stopId) === button.dataset.stopId);
+      if (stop) selectStop(stop);
+    };
+  });
 }
 
-function busRowHTML(b) {
+function tripFeatureHTML(trip) {
+  const vehicle = (trip.vehicleList || [])[0] || {};
+  const service = trip.airCondition ? "❄️ Air-conditioned" : "🌬️ Non-air-conditioned";
+  const subtype = vehicle.subType ? ` · ${esc(vehicle.subType)}` : "";
+  const price = vehicle.price ? ` · ${esc(vehicle.price)}` : "";
+  return `<span class="service-badge"><i style="background:#${esc(trip.routeColor || "777")}"></i>${service}${subtype}${price}</span>`;
+}
+
+function distanceMeters(lat1, lon1, lat2, lon2) {
+  const rad = (v) => v * Math.PI / 180;
+  const dLat = rad(lat2 - lat1), dLon = rad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function busDistanceFromStop(b, stop) {
+  const lat = Number(b.snapped_lat) || Number(b.lat);
+  const lon = Number(b.snapped_lon) || Number(b.lon);
+  return lat && lon ? distanceMeters(lat, lon, stop.location.lat, stop.location.lon) : Infinity;
+}
+
+function updateBusMotion(trip) {
+  if (!state.selectedStop) return;
+  const now = Date.now();
+  (trip.gpsList || []).forEach((b) => {
+    const distance = busDistanceFromStop(b, state.selectedStop);
+    if (!Number.isFinite(distance)) return;
+    const previous = state.busMotion[b.id];
+    let trend = previous?.trend || "measuring";
+    if (previous && now - previous.sampledAt >= 4000) {
+      const change = distance - previous.distance;
+      if (change <= -5) trend = "approaching";
+      else if (change >= 5) trend = "moving-away";
+      else trend = "unclear";
+    }
+    state.busMotion[b.id] = { distance, sampledAt: now, trend };
+  });
+}
+
+function selectStop(stop) {
+  state.selectedStop = stop;
+  rememberStopSelection(stop);
+  state.selectedBus = null;
+  state.busMotion = {};
+  updateBusMotion(state.trip);
+  stopCamViewer();
+  layers.camera.clearLayers();
+  const buses = [...(state.trip?.gpsList || [])].sort((a, b) =>
+    busDistanceFromStop(a, stop) - busDistanceFromStop(b, stop)).slice(0, 2);
+  state.visibleBusIds = new Set(buses.map((b) => b.id));
+  updateBuses(state.trip);
+  setSheet(`
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="font-size:24px">🚏</div>
+      <div style="flex:1;min-width:0"><b>${esc(stop.stopName)}</b><br><small>Two nearest live buses</small></div>
+      <button class="btn btn-ghost" style="width:auto;padding:8px 12px" id="btn-all-buses">All buses</button>
+    </div>
+    <div id="arrival-estimate" class="arrival-card"><small>Loading Namtang arrival estimate…</small></div>
+    <div id="bus-list">
+      ${buses.length ? buses.map((b) => busRowHTML(b, stop)).join("") : "<small>No live buses on this trip.</small>"}
+    </div>
+    <div id="bus-detail"></div>`);
+  $("#btn-all-buses").onclick = () => { state.selectedStop = null; renderTripSheet(); };
+  bindBusRows();
+  loadArrivalEstimate(stop);
+  const points = [[stop.location.lat, stop.location.lon], ...buses.map((b) => [
+    Number(b.snapped_lat) || Number(b.lat), Number(b.snapped_lon) || Number(b.lon),
+  ])].filter((p) => p[0] && p[1]);
+  if (points.length > 1) {
+    const desktop = window.matchMedia("(min-width: 760px)").matches;
+    map.fitBounds(L.latLngBounds(points), {
+      paddingTopLeft: desktop ? [470, 80] : [30, 80],
+      paddingBottomRight: desktop ? [40, 40] : [30, 160],
+      maxZoom: 16,
+    });
+  } else map.setView([stop.location.lat, stop.location.lon], 16);
+}
+
+async function loadArrivalEstimate(stop) {
+  const box = document.getElementById("arrival-estimate");
+  if (!box || !stop || state.view !== "trip") return;
+  try {
+    const arrival = await api(`/api/arrivals?stop=${encodeURIComponent(stop.stopId)}&trip=${encodeURIComponent(state.tripId)}`);
+    if (state.selectedStop?.stopId !== stop.stopId) return;
+    const first = (arrival.gpsList || []).find((b) => b.is_first_to_arrive) || (arrival.gpsList || [])[0];
+    const seconds = Math.max(0, Math.round(Number(arrival.waitTime) || 0));
+    const eta = seconds <= 30 ? "Arriving now" : `About ${Math.max(1, Math.ceil(seconds / 60))} min`;
+    box.innerHTML = first
+      ? `<div><span class="arrival-icon">⏱️</span><b>${eta}</b> <small>· Namtang estimate</small></div>
+         <div class="arrival-bus">Next: bus ${esc(first.id.split(" ")[0])}${first.is_approaching_stop ? " · approaching" : ""}</div>`
+      : `<small>No approaching bus estimate is available.</small>`;
+  } catch {
+    box.innerHTML = `<small>Namtang arrival estimate is temporarily unavailable.</small>`;
+  }
+}
+
+function busRowHTML(b, stop = null) {
   const plate = b.id.split(" ")[0];
   const speed = Math.round(Number(b.speed) || 0);
+  const ageSec = b.received ? Math.max(0, Math.round(Date.now() / 1000 - Number(b.received))) : Infinity;
+  const stale = ageSec > 90;
+  const stopped = !stale && speed === 0;
+  const slow = !stale && speed > 0 && speed < 4;
+  const speedText = stale ? "GPS stale" : stopped ? "stopped" : `${speed} km/h`;
+  const stopDistance = stop ? busDistanceFromStop(b, stop) : null;
+  const proximity = stopDistance === null ? "" : ` · ${stopDistance < 1000 ? Math.round(stopDistance) + " m" : (stopDistance / 1000).toFixed(1) + " km"} from stop`;
+  const trend = stop ? (state.busMotion[b.id]?.trend || "measuring") : "";
+  const trendHTML = trend === "approaching" ? `<span class="motion motion-toward">↓ approaching stop</span>`
+    : trend === "moving-away" ? `<span class="motion motion-away">↑ moving away</span>`
+    : trend === "unclear" ? `<span class="motion motion-unclear">• stopped/unclear</span>`
+    : stop ? `<span class="motion motion-measuring">… measuring direction (5s)</span>` : "";
   const sel = state.selectedBus === b.id;
   return `<div class="bus-row ${sel ? "selected" : ""}" data-bus="${esc(b.id)}">
     <div style="font-size:20px">🚌</div>
     <div class="grow">
       <div class="plate">${esc(plate)}</div>
-      <div class="sub">→ ${esc(b.next_stop_name || "?")} · updated ${fmtAgo(b.received)}</div>
+      <div class="sub">→ ${esc(b.next_stop_name || "?")}${proximity} · updated ${fmtAgo(b.received)}</div>
+      ${trendHTML}
     </div>
-    <div class="speed-badge ${speed < 3 ? "stopped" : ""}">${speed < 3 ? "stopped" : speed + " km/h"}</div>
+    <div class="speed-badge ${stale ? "stale" : stopped ? "stopped" : slow ? "slow" : ""}">${speedText}</div>
   </div>`;
 }
 
 function bindBusRows() {
   sheetContent.querySelectorAll(".bus-row").forEach((row) => {
-    row.onclick = () => selectBus(row.dataset.bus);
+    row.onclick = () => selectBus(row.dataset.bus, { userAction: true });
   });
 }
 
-async function selectBus(busId) {
+async function selectBus(busId, options = {}) {
+  const changedBus = state.selectedBus !== busId;
+  if (changedBus) {
+    clearTimeout(state.cameraHandoffTimer);
+    state.cameraHandoffTimer = null;
+    state.activeCameraBus = null;
+    state.activeCameraId = null;
+    state.pendingCameraId = null;
+    state.cameraIndexOffset = 0;
+  }
+  if (changedBus || options.userAction) $("#sheet").classList.remove("collapsed");
   state.selectedBus = busId;
+  const selectionVersion = ++state.selectionVersion;
   state.follow = true;
   updateBuses(state.trip);
   const m = busMarkers[busId];
@@ -328,27 +568,99 @@ async function selectBus(busId) {
   const detail = $("#bus-detail");
   if (!detail) return;
   const plate = busId.split(" ")[0];
-  detail.innerHTML = `<h2>Bus ${esc(plate)}</h2><small>Loading details…</small>`;
+  if (changedBus || !detail.innerHTML) {
+    detail.innerHTML = `<h2>Bus ${esc(plate)}</h2><small>Loading details…</small>`;
+  }
 
   let camHTML = "";
   let camId = null;
+  let busCameraBounds = null;
   try {
     const d = await api(`/api/bus?trip=${encodeURIComponent(state.tripId)}&bus=${encodeURIComponent(plate)}`);
+    if (selectionVersion !== state.selectionVersion || state.selectedBus !== busId) return;
+    const cameraCandidates = d.cameraCandidates || [];
+    if (cameraCandidates.length) {
+      state.cameraIndexOffset = Math.min(state.cameraIndexOffset, cameraCandidates.length - 1);
+      const chosen = cameraCandidates[state.cameraIndexOffset];
+      d.nearestCamera = chosen.camera;
+      d.cameraDistanceM = chosen.distanceM;
+      if (state.cameraIndexOffset > 0) d.cameraSelection = "next";
+    }
     if (d.nearestCamera) {
+      const nextCameraId = String(d.nearestCamera.id);
+      if (state.activeCameraBus === busId && state.activeCameraId && state.activeCameraId !== nextCameraId) {
+        // Keep the just-passed camera live for five seconds. Repeated refreshes
+        // must not restart the grace period.
+        if (state.pendingCameraId !== nextCameraId) {
+          clearTimeout(state.cameraHandoffTimer);
+          state.pendingCameraId = nextCameraId;
+          state.cameraHandoffTimer = setTimeout(() => {
+            if (state.selectedBus !== busId || state.pendingCameraId !== nextCameraId) return;
+            state.activeCameraId = nextCameraId;
+            state.pendingCameraId = null;
+            state.cameraHandoffTimer = null;
+            selectBus(busId);
+          }, 5000);
+        }
+        return;
+      }
+      state.activeCameraBus = busId;
+      state.activeCameraId = nextCameraId;
+      state.pendingCameraId = null;
+      layers.camera.clearLayers();
       camId = d.nearestCamera.id;
+      const cam = d.nearestCamera;
+      const busLat = Number(d.bus.snapped_lat) || Number(d.bus.lat);
+      const busLon = Number(d.bus.snapped_lon) || Number(d.bus.lon);
+      const camIcon = L.divIcon({
+        html: `<div class="camera-marker">📷</div>`,
+        className: "", iconSize: [34, 34], iconAnchor: [17, 17],
+      });
+      L.marker([cam.lat, cam.lon], { icon: camIcon, zIndexOffset: 450 })
+        .bindPopup(`<b>Camera ${esc(cam.id)}</b><br>${esc(cam.name_th || cam.name_en || "")}`)
+        .addTo(layers.camera);
+      if (busLat && busLon) {
+        busCameraBounds = L.latLngBounds([[busLat, busLon], [cam.lat, cam.lon]]);
+        L.polyline([[busLat, busLon], [cam.lat, cam.lon]], {
+          color: "#e8b25a", weight: 2, opacity: .85, dashArray: "6 7",
+        }).addTo(layers.camera);
+      }
       camHTML = `
-        <h2>🎥 Nearest traffic camera <small>· ${Math.round(d.cameraDistanceM)} m from bus</small></h2>
+        <h2>🎥 ${d.cameraSelection === "nearest" ? "Nearest" : "Upcoming"} traffic camera <small>· ${Math.round(d.cameraDistanceM)} m from bus · ${d.cameraOnRoute ? "on route" : "near route"}</small></h2>
         <div class="cam-box">
           <img id="cam-img" alt="Loading camera…">
           <div class="cam-label">${esc(d.nearestCamera.name_th || d.nearestCamera.name_en || d.nearestCamera.id)}</div>
-        </div>`;
+        </div>
+        <div class="btn-row camera-nav">
+          <button class="btn btn-ghost" id="btn-prev-camera" ${state.cameraIndexOffset <= 0 ? "disabled" : ""}>‹ Previous camera</button>
+          <button class="btn btn-ghost" id="btn-next-camera" ${state.cameraIndexOffset >= cameraCandidates.length - 1 ? "disabled" : ""}>Next camera ›</button>
+        </div>
+        <button class="btn btn-ghost btn-map-pins" id="btn-map-pins">🗺️ Show bus + camera pins</button>`;
     }
   } catch { /* camera info is best-effort */ }
 
+  if (selectionVersion !== state.selectionVersion || state.selectedBus !== busId) return;
+
   const b = (state.trip.gpsList || []).find((x) => x.id === busId) || {};
+  const stopBuses = state.selectedStop
+    ? (state.trip.gpsList || []).filter((candidate) => !state.visibleBusIds || state.visibleBusIds.has(candidate.id))
+    : [];
+  const busSwitcher = stopBuses.length > 1 ? `
+    <div class="bus-switcher">
+      <small>Other buses near ${esc(state.selectedStop.stopName)}</small>
+      <div class="chips">${stopBuses.map((candidate) => `
+        <button class="bus-switch-chip ${candidate.id === busId ? "active" : ""}" data-switch-bus="${esc(candidate.id)}">
+          ${esc(candidate.id.split(" ")[0])}
+        </button>`).join("")}</div>
+    </div>` : "";
   detail.innerHTML = `
     <h2>Bus ${esc(plate)}</h2>
+    ${state.selectedStop ? `<button class="btn btn-ghost btn-back-stop" id="btn-back-stop">‹ Other buses at ${esc(state.selectedStop.stopName)}</button>` : ""}
+    ${busSwitcher}
+    <div class="trip-id-line">Route ${esc(state.trip.routeShortName)} · Trip ID ${esc(state.tripId)}</div>
+    ${tripFeatureHTML(state.trip)}
     <dl class="detail-grid">
+      <dt>Direction</dt><dd>${b.is_reversed ? "↩ Opposite/return direction" : `→ Toward ${esc(state.trip.tripHeadsign)}`}</dd>
       <dt>Next stop</dt><dd>${esc(b.next_stop_name || "?")} <small>(${Math.round(Number(b.distance_to_next_stop) || 0)} m)</small></dd>
       <dt>Speed</dt><dd>${Math.round(Number(b.speed) || 0)} km/h</dd>
       <dt>Updated</dt><dd>${fmtAgo(b.received)}</dd>
@@ -361,22 +673,77 @@ async function selectBus(busId) {
     ${camHTML}
   `;
   $("#btn-alert").onclick = startAlertFlow;
+  $("#btn-back-stop")?.addEventListener("click", () => selectStop(state.selectedStop));
   $("#btn-live").onclick = () => createWatch(null);
+  detail.querySelectorAll("[data-switch-bus]").forEach((button) => {
+    button.onclick = () => selectBus(button.dataset.switchBus, { userAction: true });
+  });
+  const showPins = () => {
+    if (!busCameraBounds) return;
+    const desktop = window.matchMedia("(min-width: 760px)").matches;
+    if (!desktop) $("#sheet").classList.add("collapsed");
+    const framePins = () => {
+      map.invalidateSize({ pan: false });
+      map.fitBounds(busCameraBounds, {
+        paddingTopLeft: desktop ? [470, 90] : [36, 100],
+        paddingBottomRight: desktop ? [40, 40] : [36, 100],
+        maxZoom: 17,
+      });
+    };
+    // Brave/iOS needs the sheet transition to finish before Leaflet fits the
+    // pins, otherwise it uses stale viewport measurements.
+    if (desktop) framePins(); else setTimeout(framePins, 320);
+  };
+  $("#btn-map-pins")?.addEventListener("click", showPins);
+  $("#btn-prev-camera")?.addEventListener("click", () => {
+    state.cameraIndexOffset = Math.max(0, state.cameraIndexOffset - 1);
+    state.activeCameraId = null;
+    selectBus(busId);
+  });
+  $("#btn-next-camera")?.addEventListener("click", () => {
+    state.cameraIndexOffset++;
+    state.activeCameraId = null;
+    selectBus(busId);
+  });
+  if (busCameraBounds && window.matchMedia("(min-width: 760px)").matches) showPins();
+  if ((changedBus || options.userAction) && camId) {
+    const cameraImage = document.getElementById("cam-img");
+    if (cameraImage) cameraImage.dataset.scrollBottom = "true";
+    requestAnimationFrame(() => {
+      sheetContent.scrollTo({ top: sheetContent.scrollHeight, behavior: "smooth" });
+    });
+  }
   if (camId) startCamViewer(camId);
 }
 
 /* ---------- live camera viewer ---------- */
 let camTimer = null;
+let camGeneration = 0;
 
 function startCamViewer(camId) {
   stopCamViewer();
+  const generation = ++camGeneration;
+  const current = document.getElementById("cam-img");
+  if (current) current.dataset.cameraId = camId;
   const load = () => {
     const el = document.getElementById("cam-img");
-    if (!el) { stopCamViewer(); return; }
+    if (!el || generation !== camGeneration || el.dataset.cameraId !== camId) return;
     if (document.hidden) return;
     const next = new Image();
-    next.onload = () => { el.src = next.src; el.classList.remove("cam-err"); };
-    next.onerror = () => el.classList.add("cam-err");
+    next.onload = () => {
+      if (generation !== camGeneration || el.dataset.cameraId !== camId) return;
+      el.src = next.src;
+      el.classList.remove("cam-err");
+      if (el.dataset.scrollBottom === "true") {
+        el.dataset.scrollBottom = "false";
+        requestAnimationFrame(() => {
+          sheetContent.scrollTo({ top: sheetContent.scrollHeight, behavior: "smooth" });
+        });
+      }
+    };
+    next.onerror = () => {
+      if (generation === camGeneration && el.dataset.cameraId === camId) el.classList.add("cam-err");
+    };
     next.src = `/api/camera/${encodeURIComponent(camId)}/frame?t=${Date.now()}`;
   };
   load();
@@ -384,6 +751,7 @@ function startCamViewer(camId) {
 }
 
 function stopCamViewer() {
+  camGeneration++;
   if (camTimer) clearInterval(camTimer);
   camTimer = null;
 }
@@ -507,13 +875,30 @@ function startRefresh() {
     try {
       const trip = await api(`/api/trip/${encodeURIComponent(state.tripId)}`);
       state.trip = trip;
+      updateBusMotion(trip);
+      if (state.selectedStop && !state.selectedBus) {
+        const nearest = [...(trip.gpsList || [])]
+          .sort((a, b) => busDistanceFromStop(a, state.selectedStop) - busDistanceFromStop(b, state.selectedStop))
+          .slice(0, 2);
+        state.visibleBusIds = new Set(nearest.map((b) => b.id));
+      }
       updateBuses(trip);
       const list = $("#bus-list");
-      if (list && !state.selectedBus) {
-        list.innerHTML = (trip.gpsList || []).map((b) => busRowHTML(b)).join("") ||
+      if (list) {
+        const buses = state.selectedStop && !state.selectedBus
+          ? [...(trip.gpsList || [])].sort((a, b) => busDistanceFromStop(a, state.selectedStop) - busDistanceFromStop(b, state.selectedStop)).slice(0, 2)
+          : (trip.gpsList || []);
+        list.innerHTML = buses.map((b) => busRowHTML(b, state.selectedStop && !state.selectedBus ? state.selectedStop : null)).join("") ||
           `<small>No buses reporting GPS right now.</small>`;
         bindBusRows();
       }
+      // Refresh the selected bus's speed, next stop, position-dependent camera,
+      // and detail timestamp too. Previously only its map marker moved.
+      if (state.selectedBus) {
+        const stillPresent = (trip.gpsList || []).some((b) => b.id === state.selectedBus);
+        if (stillPresent) await selectBus(state.selectedBus);
+      }
+      if (state.selectedStop) loadArrivalEstimate(state.selectedStop);
     } catch { /* transient */ }
   }, REFRESH_MS);
 }
@@ -524,10 +909,20 @@ function stopRefresh() {
 }
 
 function clearTripLayers() {
+  state.selectionVersion++;
+  clearTimeout(state.cameraHandoffTimer);
+  state.cameraHandoffTimer = null;
+  state.activeCameraBus = null;
+  state.activeCameraId = null;
+  state.pendingCameraId = null;
+  state.cameraIndexOffset = 0;
+  state.visibleBusIds = null;
+  state.busMotion = {};
   stopCamViewer();
   layers.route.clearLayers();
   layers.stops.clearLayers();
   layers.buses.clearLayers();
+  layers.camera.clearLayers();
   layers.alert.clearLayers();
   Object.keys(busMarkers).forEach((k) => delete busMarkers[k]);
   stopRefresh();
@@ -536,6 +931,17 @@ function clearTripLayers() {
 /* ---------- wire up ---------- */
 $("#btn-home").onclick = () => { clearTripLayers(); renderHome(); };
 $("#sheet-handle").onclick = () => $("#sheet").classList.toggle("collapsed");
+let sheetTouchY = null;
+$("#sheet-handle").addEventListener("touchstart", (e) => {
+  sheetTouchY = e.changedTouches[0]?.clientY ?? null;
+}, { passive: true });
+$("#sheet-handle").addEventListener("touchend", (e) => {
+  if (sheetTouchY === null) return;
+  const delta = (e.changedTouches[0]?.clientY ?? sheetTouchY) - sheetTouchY;
+  sheetTouchY = null;
+  if (delta > 35) $("#sheet").classList.add("collapsed");
+  if (delta < -35) $("#sheet").classList.remove("collapsed");
+}, { passive: true });
 $("#alert-cancel").onclick = () => { endAlertFlow(); renderTripSheet(); selectBus(state.selectedBus); };
 $("#alert-use-me").onclick = async () => {
   try {
@@ -547,12 +953,21 @@ $("#alert-use-me").onclick = async () => {
   }
 };
 
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js").catch(() => {});
+async function init() {
+  // Wait for the first status response before drawing the home sheet. Without
+  // this, the default "Telegram off" state flashes and remains in the sheet
+  // even after the status pill has updated.
+  await refreshTelegram();
+  const remembered = getLastStopSelection();
+  if (remembered?.tripId && remembered?.stopId) await openTrip(remembered.tripId, remembered.stopId);
+  else renderHome();
+  refreshWatches();
+  setInterval(refreshTelegram, 20000);
+  state.watchTimer = setInterval(refreshWatches, 20000);
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
 }
 
-refreshTelegram();
-setInterval(refreshTelegram, 20000);
-refreshWatches();
-state.watchTimer = setInterval(refreshWatches, 20000);
-renderHome();
+init();

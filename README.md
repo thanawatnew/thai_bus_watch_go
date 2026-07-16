@@ -18,7 +18,7 @@ map UI, and a background watch/notification engine.
 - 🔔 **Proximity alerts** — drop a pin (e.g. your stop), pick a radius, get a Telegram push when the bus is that close, with an ETA
 - 📡 **Telegram live pin** — a live-location marker in Telegram that moves with the bus
 - 📸 **Camera pass-by snapshots** — when your watched bus passes within ~130 m of a traffic camera, the camera's photo is sent to your Telegram
-- 🤖 **Optional AI bus check** — with an `ANTHROPIC_API_KEY` set, Claude vision inspects that snapshot and says whether your bus is actually visible (cameras are 352×288, so it judges by bus type/route sign — plates aren't readable at that resolution)
+- 🔎 **Local bus check** — a key-free detector inspired by [WIMB](https://github.com/thanawatnew/wimb) checks bus color and shape in each camera snapshot. Live GPS identifies the bus; 352×288 camera frames are not sharp enough to identify a plate reliably.
 - 📱 **Installable PWA** — add to your iPhone home screen and it opens like a native app
 
 ## Setup (~10 minutes, free)
@@ -53,7 +53,6 @@ map UI, and a background watch/notification engine.
 |---|---|---|
 | `TELEGRAM_BOT_TOKEN` | for notifications | Bot token from @BotFather |
 | `TELEGRAM_CHAT_ID` | recommended | Pins your chat so the connection survives restarts — the bot tells you the value after `/start` |
-| `ANTHROPIC_API_KEY` | optional | Enables the AI camera check (uses `claude-opus-4-8`; override with `VISION_MODEL`) |
 | `SELF_URL` | auto on Render | Public URL for the Telegram webhook + keep-alive (Render sets `RENDER_EXTERNAL_URL` automatically) |
 
 ## Run locally instead

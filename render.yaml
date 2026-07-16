@@ -9,5 +9,3 @@ services:
         sync: false # paste your BotFather token in the Render dashboard
       - key: TELEGRAM_CHAT_ID
         sync: false # optional: pin your chat (the bot tells you the value after /start)
-      - key: ANTHROPIC_API_KEY
-        sync: false # optional: enables the AI camera bus check

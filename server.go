@@ -9,6 +9,8 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -43,6 +45,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/telegram/webhook", s.handleTelegramWebhook)
 	mux.HandleFunc("GET /api/trip/{id}", s.handleTrip)
 	mux.HandleFunc("GET /api/nearby", s.handleNearby)
+	mux.HandleFunc("GET /api/passing/{id}", s.handlePassingTrips)
+	mux.HandleFunc("GET /api/arrivals", s.handleArrivals)
 	mux.HandleFunc("GET /api/bus", s.handleBus)
 	mux.HandleFunc("GET /api/telegram/status", s.handleTelegramStatus)
 	mux.HandleFunc("GET /api/watch", s.handleWatchList)
@@ -50,6 +54,22 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("DELETE /api/watch/{id}", s.handleWatchDelete)
 
 	return mux
+}
+
+func (s *Server) handlePassingTrips(w http.ResponseWriter, r *http.Request) {
+	stopID := strings.TrimSpace(r.PathValue("id"))
+	if stopID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "stop id is required"})
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
+	defer cancel()
+	trips, err := GetPassingTrips(ctx, stopID)
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, trips)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -93,6 +113,29 @@ func (s *Server) handleNearby(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, stops)
 }
 
+func (s *Server) handleArrivals(w http.ResponseWriter, r *http.Request) {
+	stopID := strings.TrimSpace(r.URL.Query().Get("stop"))
+	tripID := strings.TrimSpace(r.URL.Query().Get("trip"))
+	if stopID == "" || tripID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "stop and trip are required"})
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
+	defer cancel()
+	trips, err := GetPassingTrips(ctx, stopID)
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, err)
+		return
+	}
+	for _, trip := range trips {
+		if strconv.FormatInt(trip.TripID, 10) == tripID {
+			writeJSON(w, http.StatusOK, trip)
+			return
+		}
+	}
+	writeJSON(w, http.StatusNotFound, map[string]string{"error": "trip does not serve this stop"})
+}
+
 // handleBus returns one bus's live position plus the nearest BMA traffic camera.
 func (s *Server) handleBus(w http.ResponseWriter, r *http.Request) {
 	tripID := strings.TrimSpace(r.URL.Query().Get("trip"))
@@ -124,9 +167,34 @@ func (s *Server) handleBus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if cameras, err := GetBMACameras(ctx); err == nil && len(cameras) > 0 {
-		cam, dist := NearestCamera(bus.BestLat(), bus.BestLon(), cameras)
+		routeCameras := CamerasNearShape(cameras, trip.ShapeGeom, 120)
+		if len(routeCameras) == 0 {
+			routeCameras = cameras
+		}
+		heading := float64(bus.SnappedHeading)
+		if heading == 0 {
+			heading = float64(bus.Heading)
+		}
+		cam, dist, ahead := UpcomingCamera(bus.BestLat(), bus.BestLon(), heading, routeCameras)
+		if !ahead {
+			cam, dist = NearestCamera(bus.BestLat(), bus.BestLon(), routeCameras)
+		}
 		resp["nearestCamera"] = cam
 		resp["cameraDistanceM"] = math.Round(dist)
+		resp["cameraSelection"] = map[bool]string{true: "ahead", false: "nearest"}[ahead]
+		resp["cameraOnRoute"] = len(CamerasNearShape([]Camera{cam}, trip.ShapeGeom, 120)) == 1
+		type cameraCandidate struct {
+			Camera    Camera  `json:"camera"`
+			DistanceM float64 `json:"distanceM"`
+		}
+		candidates := make([]cameraCandidate, 0)
+		for _, candidate := range routeCameras {
+			if c, d, ok := UpcomingCamera(bus.BestLat(), bus.BestLon(), heading, []Camera{candidate}); ok {
+				candidates = append(candidates, cameraCandidate{Camera: c, DistanceM: math.Round(d)})
+			}
+		}
+		sort.Slice(candidates, func(i, j int) bool { return candidates[i].DistanceM < candidates[j].DistanceM })
+		resp["cameraCandidates"] = candidates
 	}
 
 	writeJSON(w, http.StatusOK, resp)

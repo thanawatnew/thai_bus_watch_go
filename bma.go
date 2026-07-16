@@ -206,6 +206,83 @@ func NearestCamera(busLat float64, busLon float64, cameras []Camera) (Camera, fl
 	return best, bestDistance
 }
 
+// UpcomingCamera returns the closest camera in front of the vehicle. Heading
+// follows the GPS convention: 0=north, 90=east. A generous 70-degree cone
+// tolerates curved roads and noisy low-speed headings. A camera within 2 m is
+// treated as alongside the bus; the browser provides the post-pass time buffer.
+func UpcomingCamera(busLat, busLon, heading float64, cameras []Camera) (Camera, float64, bool) {
+	if len(cameras) == 0 || math.IsNaN(heading) {
+		return Camera{}, 0, false
+	}
+	heading = math.Mod(heading+360, 360)
+	bestDistance := math.Inf(1)
+	var best Camera
+	for _, cam := range cameras {
+		d := HaversineMeters(busLat, busLon, cam.Lat, cam.Lon)
+		if d > 5000 {
+			continue
+		}
+		bearing := InitialBearing(busLat, busLon, cam.Lat, cam.Lon)
+		delta := math.Abs(bearing - heading)
+		if delta > 180 {
+			delta = 360 - delta
+		}
+		if (d <= 2 || delta <= 70) && d < bestDistance {
+			best, bestDistance = cam, d
+		}
+	}
+	if math.IsInf(bestDistance, 1) {
+		return Camera{}, 0, false
+	}
+	return best, bestDistance, true
+}
+
+// CamerasNearShape removes cameras that the route does not actually pass.
+// This avoids selecting a nearby camera on a crossing road.
+func CamerasNearShape(cameras []Camera, shape []LatLon, maxDistanceM float64) []Camera {
+	if len(shape) < 2 {
+		return cameras
+	}
+	out := make([]Camera, 0, len(cameras))
+	for _, cam := range cameras {
+		best := math.Inf(1)
+		for i := 1; i < len(shape); i++ {
+			d := pointSegmentMeters(cam.Lat, cam.Lon, shape[i-1].Lat, shape[i-1].Lon, shape[i].Lat, shape[i].Lon)
+			if d < best {
+				best = d
+			}
+		}
+		if best <= maxDistanceM {
+			out = append(out, cam)
+		}
+	}
+	return out
+}
+
+func pointSegmentMeters(pLat, pLon, aLat, aLon, bLat, bLon float64) float64 {
+	const metersPerDegree = 111195.0
+	refLat := (pLat + aLat + bLat) / 3 * math.Pi / 180
+	x := func(lon float64) float64 { return lon * metersPerDegree * math.Cos(refLat) }
+	y := func(lat float64) float64 { return lat * metersPerDegree }
+	px, py, ax, ay, bx, by := x(pLon), y(pLat), x(aLon), y(aLat), x(bLon), y(bLat)
+	dx, dy := bx-ax, by-ay
+	t := 0.0
+	if denom := dx*dx + dy*dy; denom > 0 {
+		t = ((px-ax)*dx + (py-ay)*dy) / denom
+	}
+	t = math.Max(0, math.Min(1, t))
+	return math.Hypot(px-(ax+t*dx), py-(ay+t*dy))
+}
+
+func InitialBearing(lat1, lon1, lat2, lon2 float64) float64 {
+	toRad := func(deg float64) float64 { return deg * math.Pi / 180 }
+	phi1, phi2 := toRad(lat1), toRad(lat2)
+	dLon := toRad(lon2 - lon1)
+	y := math.Sin(dLon) * math.Cos(phi2)
+	x := math.Cos(phi1)*math.Sin(phi2) - math.Sin(phi1)*math.Cos(phi2)*math.Cos(dLon)
+	return math.Mod(math.Atan2(y, x)*180/math.Pi+360, 360)
+}
+
 func HaversineMeters(lat1 float64, lon1 float64, lat2 float64, lon2 float64) float64 {
 	const earthRadiusMeters = 6371000.0
 

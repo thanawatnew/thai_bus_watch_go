@@ -1,3 +1,6 @@
 buswatch.exe
 buswatch
 *.log
+.env
+.env.*
+!.env.example
