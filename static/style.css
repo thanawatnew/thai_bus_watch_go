@@ -189,6 +189,14 @@ input[type=text]:focus { border-color: #2f6fed; }
 }
 .about-copy { line-height: 1.55; color: #cbd1d8; }
 .about-copy h2 { color: #e8eaed; font-size: 20px; margin-top: 4px; }
+.camera-available {
+  display: flex; flex-direction: column; gap: 3px; width: 100%;
+  margin: 10px 0; padding: 11px 12px; text-align: left;
+  border: 1px solid rgba(232,178,90,.4); border-radius: 12px;
+  background: #352c1c; color: #f4d79b; cursor: pointer;
+}
+.camera-available span { color: #c9b98f; font-size: 12px; }
+#camera-section { scroll-margin-top: 8px; }
 
 .detail-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 14px; margin: 10px 0; }
 .detail-grid dt { color: #8a939d; }

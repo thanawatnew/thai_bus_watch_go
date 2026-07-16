@@ -3,7 +3,7 @@
 
 const BANGKOK = [13.7563, 100.5018];
 const REFRESH_MS = 5000;
-const APP_VERSION = "0.4.2";
+const APP_VERSION = "0.4.3";
 
 const state = {
   view: "home",          // home | trip | alert-pick
@@ -689,6 +689,7 @@ async function selectBus(busId, options = {}) {
         }).addTo(layers.camera);
       }
       camHTML = `
+        <div id="camera-section">
         <h2>🎥 ${d.cameraSelection === "nearest" ? "Nearest" : "Upcoming"} traffic camera <small>· ${Math.round(d.cameraDistanceM)} m from bus · ${d.cameraOnRoute ? "on route" : "near route"}</small></h2>
         <div class="camera-link-info">
           <b>${esc(d.nearestCamera.name_th || d.nearestCamera.name_en || d.nearestCamera.id)}</b>
@@ -702,7 +703,8 @@ async function selectBus(busId, options = {}) {
           <button class="btn btn-ghost" id="btn-prev-camera" ${state.cameraIndexOffset <= 0 ? "disabled" : ""}>‹ Previous camera</button>
           <button class="btn btn-ghost" id="btn-next-camera" ${state.cameraIndexOffset >= cameraCandidates.length - 1 ? "disabled" : ""}>Next camera ›</button>
         </div>
-        <button class="btn btn-ghost btn-map-pins" id="btn-map-pins">🗺️ Show bus + camera pins</button>`;
+        <button class="btn btn-ghost btn-map-pins" id="btn-map-pins">🗺️ Show bus + camera pins</button>
+        </div>`;
     }
   } catch { /* camera info is best-effort */ }
 
@@ -740,6 +742,7 @@ async function selectBus(busId, options = {}) {
     ${busSwitcher}
     <div class="trip-id-line">Route ${esc(state.trip.routeShortName)} · Trip ID ${esc(state.tripId)}</div>
     ${tripFeatureHTML(state.trip)}
+    ${camId ? `<button class="camera-available" id="btn-view-camera"><b>🎥 Traffic camera available</b><span>Tap to view the nearest camera for this bus ↓</span></button>` : ""}
     <dl class="detail-grid">
       <dt>Direction</dt><dd id="detail-direction">${b.is_reversed ? "↩ Opposite/return direction" : `→ Toward ${esc(state.trip.tripHeadsign)}`}</dd>
       <dt>Next stop</dt><dd id="detail-next-stop">${esc(b.next_stop_name || "?")} (${Math.round(Number(b.distance_to_next_stop) || 0)} m)</dd>
@@ -754,6 +757,7 @@ async function selectBus(busId, options = {}) {
     ${camHTML}
   `;
   if (options.userAction) revealSheetTarget(detail);
+  $("#btn-view-camera")?.addEventListener("click", () => revealSheetTarget("#camera-section", 0));
   $("#btn-alert").onclick = startAlertFlow;
   $("#btn-back-stop")?.addEventListener("click", () => selectStop(state.selectedStop));
   $("#btn-live").onclick = () => createWatch(null);
