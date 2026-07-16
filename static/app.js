@@ -631,6 +631,7 @@ async function selectBus(busId, options = {}) {
           <img id="cam-img" alt="Loading camera…">
           <div class="cam-label">${esc(d.nearestCamera.name_th || d.nearestCamera.name_en || d.nearestCamera.id)}</div>
         </div>
+        <small class="cam-status" id="cam-status">Loading camera independently…</small>
         <div class="btn-row camera-nav">
           <button class="btn btn-ghost" id="btn-prev-camera" ${state.cameraIndexOffset <= 0 ? "disabled" : ""}>‹ Previous camera</button>
           <button class="btn btn-ghost" id="btn-next-camera" ${state.cameraIndexOffset >= cameraCandidates.length - 1 ? "disabled" : ""}>Next camera ›</button>
@@ -642,6 +643,18 @@ async function selectBus(busId, options = {}) {
   if (selectionVersion !== state.selectionVersion || state.selectedBus !== busId) return;
 
   const b = (state.trip.gpsList || []).find((x) => x.id === busId) || {};
+  if (options.background && !changedBus && detail.innerHTML) {
+    const direction = document.getElementById("detail-direction");
+    const nextStop = document.getElementById("detail-next-stop");
+    const speed = document.getElementById("detail-speed");
+    const updated = document.getElementById("detail-updated");
+    if (direction) direction.textContent = b.is_reversed ? "↩ Opposite/return direction" : `→ Toward ${state.trip.tripHeadsign}`;
+    if (nextStop) nextStop.textContent = `${b.next_stop_name || "?"} (${Math.round(Number(b.distance_to_next_stop) || 0)} m)`;
+    if (speed) speed.textContent = `${Math.round(Number(b.speed) || 0)} km/h`;
+    if (updated) updated.textContent = fmtAgo(b.received);
+    const shownCamera = document.getElementById("cam-img")?.dataset.cameraId || null;
+    if ((!camId && !shownCamera) || (camId && String(camId) === shownCamera)) return;
+  }
   const stopBuses = state.selectedStop
     ? (state.trip.gpsList || []).filter((candidate) => !state.visibleBusIds || state.visibleBusIds.has(candidate.id))
     : [];
@@ -660,10 +673,10 @@ async function selectBus(busId, options = {}) {
     <div class="trip-id-line">Route ${esc(state.trip.routeShortName)} · Trip ID ${esc(state.tripId)}</div>
     ${tripFeatureHTML(state.trip)}
     <dl class="detail-grid">
-      <dt>Direction</dt><dd>${b.is_reversed ? "↩ Opposite/return direction" : `→ Toward ${esc(state.trip.tripHeadsign)}`}</dd>
-      <dt>Next stop</dt><dd>${esc(b.next_stop_name || "?")} <small>(${Math.round(Number(b.distance_to_next_stop) || 0)} m)</small></dd>
-      <dt>Speed</dt><dd>${Math.round(Number(b.speed) || 0)} km/h</dd>
-      <dt>Updated</dt><dd>${fmtAgo(b.received)}</dd>
+      <dt>Direction</dt><dd id="detail-direction">${b.is_reversed ? "↩ Opposite/return direction" : `→ Toward ${esc(state.trip.tripHeadsign)}`}</dd>
+      <dt>Next stop</dt><dd id="detail-next-stop">${esc(b.next_stop_name || "?")} (${Math.round(Number(b.distance_to_next_stop) || 0)} m)</dd>
+      <dt>Speed</dt><dd id="detail-speed">${Math.round(Number(b.speed) || 0)} km/h</dd>
+      <dt>Updated</dt><dd id="detail-updated">${fmtAgo(b.received)}</dd>
     </dl>
     <button class="btn" id="btn-alert" ${state.tg.connected ? "" : "disabled"}>🔔 Alert me when it reaches a place</button>
     ${state.tg.connected ? "" : `<small>Connect Telegram (see above) to enable alerts.</small>`}
@@ -719,6 +732,7 @@ async function selectBus(busId, options = {}) {
 /* ---------- live camera viewer ---------- */
 let camTimer = null;
 let camGeneration = 0;
+let camLoading = false;
 
 function startCamViewer(camId) {
   stopCamViewer();
@@ -728,12 +742,16 @@ function startCamViewer(camId) {
   const load = () => {
     const el = document.getElementById("cam-img");
     if (!el || generation !== camGeneration || el.dataset.cameraId !== camId) return;
-    if (document.hidden) return;
+    if (document.hidden || camLoading) return;
+    camLoading = true;
     const next = new Image();
     next.onload = () => {
+      camLoading = false;
       if (generation !== camGeneration || el.dataset.cameraId !== camId) return;
       el.src = next.src;
       el.classList.remove("cam-err");
+      const status = document.getElementById("cam-status");
+      if (status) status.textContent = "Live camera · bus tracking stays independent";
       if (el.dataset.scrollBottom === "true") {
         el.dataset.scrollBottom = "false";
         requestAnimationFrame(() => {
@@ -742,16 +760,22 @@ function startCamViewer(camId) {
       }
     };
     next.onerror = () => {
-      if (generation === camGeneration && el.dataset.cameraId === camId) el.classList.add("cam-err");
+      camLoading = false;
+      if (generation === camGeneration && el.dataset.cameraId === camId) {
+        el.classList.add("cam-err");
+        const status = document.getElementById("cam-status");
+        if (status) status.textContent = "Camera source is slow or unavailable; bus tracking is still live.";
+      }
     };
     next.src = `/api/camera/${encodeURIComponent(camId)}/frame?t=${Date.now()}`;
   };
   load();
-  camTimer = setInterval(load, 2500);
+  camTimer = setInterval(load, 3000);
 }
 
 function stopCamViewer() {
   camGeneration++;
+  camLoading = false;
   if (camTimer) clearInterval(camTimer);
   camTimer = null;
 }
@@ -896,7 +920,7 @@ function startRefresh() {
       // and detail timestamp too. Previously only its map marker moved.
       if (state.selectedBus) {
         const stillPresent = (trip.gpsList || []).some((b) => b.id === state.selectedBus);
-        if (stillPresent) await selectBus(state.selectedBus);
+        if (stillPresent) await selectBus(state.selectedBus, { background: true });
       }
       if (state.selectedStop) loadArrivalEstimate(state.selectedStop);
     } catch { /* transient */ }

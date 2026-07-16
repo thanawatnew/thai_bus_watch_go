@@ -249,6 +249,7 @@ input[type=text]:focus { border-color: #2f6fed; }
   background: #0b0e11;
 }
 .cam-box img.cam-err { opacity: .25; }
+.cam-status { display: block; min-height: 18px; margin-top: 5px; color: #aab2bb; }
 .btn-map-pins { margin-top: 8px; }
 .camera-nav .btn { font-size: 13px; padding-left: 8px; padding-right: 8px; }
 .cam-label {
