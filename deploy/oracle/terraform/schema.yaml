@@ -1,0 +1,77 @@
+title: Thai Bus Watch — Oracle Always Free
+description: Creates an A1 Flex VM, public network, firewall, and deploys Thai Bus Watch.
+schemaVersion: 1.1.0
+version: "20260716"
+locale: en
+
+variableGroups:
+  - title: Oracle placement
+    variables:
+      - tenancy_ocid
+      - compartment_ocid
+      - region
+      - availability_domain_index
+  - title: SSH access
+    variables:
+      - ssh_public_key
+      - ssh_allowed_cidr
+  - title: Application source
+    variables:
+      - repository_url
+      - repository_branch
+
+variables:
+  tenancy_ocid:
+    type: string
+    title: Tenancy OCID
+    required: true
+  compartment_ocid:
+    type: oci:identity:compartment:id
+    title: Target compartment
+    required: true
+  region:
+    type: oci:identity:region:name
+    title: Home region
+    required: true
+  availability_domain_index:
+    type: number
+    title: Availability domain index
+    default: 0
+    minimum: 0
+  ssh_public_key:
+    type: string
+    title: SSH public key contents (.pub only)
+    description: Never paste the private key.
+    required: true
+    sensitive: true
+    multiline: true
+  ssh_allowed_cidr:
+    type: string
+    title: SSH source CIDR
+    description: Use your public IPv4 followed by /32 when possible.
+    default: 0.0.0.0/0
+    required: true
+  repository_url:
+    type: string
+    title: Git repository
+    default: https://github.com/thanawatnew/thai_bus_watch_go.git
+    required: true
+  repository_branch:
+    type: string
+    title: Git branch
+    default: main
+    required: true
+
+outputs:
+  public_ip:
+    type: copyableString
+    title: Public IPv4
+    visible: true
+  test_url:
+    type: link
+    title: Initial HTTP test URL
+    visible: true
+  ssh_command:
+    type: copyableString
+    title: SSH destination
+    visible: true

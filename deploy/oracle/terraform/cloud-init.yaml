@@ -1,0 +1,48 @@
+#cloud-config
+package_update: true
+packages:
+  - docker.io
+  - git
+
+write_files:
+  - path: /etc/systemd/system/thai-bus-watch-update.service
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Build and run Thai Bus Watch
+      After=docker.service network-online.target
+      Requires=docker.service
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/usr/local/sbin/update-thai-bus-watch
+
+      [Install]
+      WantedBy=multi-user.target
+  - path: /usr/local/sbin/update-thai-bus-watch
+    permissions: "0755"
+    content: |
+      #!/bin/sh
+      set -eu
+      if [ ! -d /opt/thai_bus_watch_go/.git ]; then
+        git clone --branch '${branch}' '${repository_url}' /opt/thai_bus_watch_go
+      else
+        git -C /opt/thai_bus_watch_go fetch origin '${branch}'
+        git -C /opt/thai_bus_watch_go reset --hard 'origin/${branch}'
+      fi
+      docker build -t thai-bus-watch:oracle /opt/thai_bus_watch_go
+      docker rm -f thai-bus-watch 2>/dev/null || true
+      docker run -d \
+        --name thai-bus-watch \
+        --restart unless-stopped \
+        -e PORT=8080 \
+        -e TELEGRAM_BOT_TOKEN= \
+        -e TELEGRAM_CHAT_ID= \
+        -p 80:8080 \
+        thai-bus-watch:oracle
+
+runcmd:
+  - systemctl enable --now docker
+  - systemctl daemon-reload
+  - systemctl enable --now thai-bus-watch-update.service

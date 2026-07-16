@@ -5,3 +5,7 @@ buswatch
 .env.*
 !.env.example
 deploy/oracle/.env
+**/.terraform/
+*.tfstate
+*.tfstate.*
+deploy/oracle/terraform/*.zip
