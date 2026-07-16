@@ -15,8 +15,13 @@ import (
 func main() {
 	tripID := flag.String("trip-id", "", "one-shot CLI mode: Namtang trip ID, example: 7179")
 	busNumber := flag.String("bus", "", "one-shot CLI mode: bus number, example: 11-9253")
+	cameraSnapshot := flag.String("write-camera-snapshot", "", "write the current BMA camera catalog to this JSON file")
 	addr := flag.String("addr", "", "listen address for server mode (default :8080 or $PORT)")
 	flag.Parse()
+	if *cameraSnapshot != "" {
+		writeCameraSnapshot(*cameraSnapshot)
+		return
+	}
 
 	if *tripID != "" || *busNumber != "" {
 		runCLI(*tripID, *busNumber)
@@ -47,6 +52,24 @@ func main() {
 	srv := NewServer(tg)
 	log.Printf("Thai Bus Watch listening on %s", listen)
 	log.Fatal(http.ListenAndServe(listen, srv.Handler()))
+}
+
+func writeCameraSnapshot(path string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	cameras, err := fetchBMACameras(ctx)
+	if err != nil {
+		fail(err)
+	}
+	body, err := json.MarshalIndent(cameras, "", "  ")
+	if err != nil {
+		fail(err)
+	}
+	body = append(body, '\n')
+	if err := os.WriteFile(path, body, 0o644); err != nil {
+		fail(err)
+	}
+	fmt.Printf("wrote %d cameras to %s\n", len(cameras), path)
 }
 
 // runCLI preserves the original one-shot behaviour of this tool:

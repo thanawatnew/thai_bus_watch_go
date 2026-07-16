@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	_ "embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +15,9 @@ import (
 	"sync"
 	"time"
 )
+
+//go:embed static/cameras.json
+var bundledCamerasJSON []byte
 
 const (
 	bmaIndexURL = "http://www.bmatraffic.com/index.aspx"
@@ -42,6 +47,13 @@ var cameraCache struct {
 }
 
 const bmaRetryBackoff = 5 * time.Minute
+
+func init() {
+	// Oracle/Render IP ranges cannot reliably reach bmatraffic.com. A bundled
+	// catalog keeps location matching available; live frames still come from
+	// BMA and are loaded directly by the user's browser.
+	_ = json.Unmarshal(bundledCamerasJSON, &cameraCache.cameras)
+}
 
 // CachedBMACameras returns immediately. Bus-detail HTTP requests use this so a
 // slow or unreachable BMA site can never hold up the rest of the UI.

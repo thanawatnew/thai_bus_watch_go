@@ -248,6 +248,11 @@ input[type=text]:focus { border-color: #2f6fed; }
   display: block; width: 100%; height: auto; max-height: 34dvh; object-fit: contain;
   background: #0b0e11;
 }
+.cam-box iframe {
+  display: block; width: 100%; aspect-ratio: 352 / 288; border: 0;
+  background: #0b0e11;
+}
+.btn-direct-camera { display: block; margin-top: 7px; text-align: center; }
 .cam-box img.cam-err { opacity: .25; }
 .cam-status { display: block; min-height: 18px; margin-top: 5px; color: #aab2bb; }
 .btn-map-pins { margin-top: 8px; }
