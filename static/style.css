@@ -28,6 +28,12 @@ html, body {
 }
 #topbar-title { flex: 1; font-weight: 600; font-size: 16px; }
 .topbar-version { margin-left: 4px; color: #aab2bb; font-size: 11px; font-weight: 500; }
+.topbar-icon {
+  width: 32px; height: 32px; flex: 0 0 32px; padding: 0;
+  border: 1px solid rgba(255,255,255,.14); border-radius: 50%;
+  background: #262c33; color: #d7dde3; font-size: 15px;
+  font-weight: 800; cursor: pointer;
+}
 
 .pill { font-size: 12px; padding: 4px 10px; border-radius: 99px; font-weight: 600; }
 .pill-on  { background: #16351f; color: #6fd388; }
@@ -83,6 +89,11 @@ html, body {
   padding: 4px max(16px, env(safe-area-inset-right))
     calc(env(safe-area-inset-bottom, 0px) + 20px)
     max(16px, env(safe-area-inset-left));
+}
+
+@media (max-width: 759px) {
+  /* Keep enough of the live map visible while the selection panel is open. */
+  #sheet { max-height: min(58vh, 58dvh); }
 }
 
 h2 { font-size: 15px; margin: 14px 0 8px; color: #aab2bb; font-weight: 600; }
@@ -171,6 +182,13 @@ input[type=text]:focus { border-color: #2f6fed; }
 }
 .trip-id-line { color: #7fb8ff; font-size: 12px; font-weight: 600; margin-bottom: 2px; }
 .route-chip small { color: inherit; opacity: .82; }
+.next-step {
+  margin: 12px 0 4px; padding: 10px 12px; border-radius: 12px;
+  background: #1d2940; border: 1px solid rgba(127,184,255,.3);
+  color: #b9d7ff; font-size: 14px; font-weight: 700;
+}
+.about-copy { line-height: 1.55; color: #cbd1d8; }
+.about-copy h2 { color: #e8eaed; font-size: 20px; margin-top: 4px; }
 
 .detail-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 14px; margin: 10px 0; }
 .detail-grid dt { color: #8a939d; }

@@ -3,7 +3,7 @@
 
 const BANGKOK = [13.7563, 100.5018];
 const REFRESH_MS = 5000;
-const APP_VERSION = "0.4.1";
+const APP_VERSION = "0.4.2";
 
 const state = {
   view: "home",          // home | trip | alert-pick
@@ -74,6 +74,14 @@ async function api(path, opts) {
 function setSheet(html, expand = true) {
   sheetContent.innerHTML = html;
   if (expand) $("#sheet").classList.remove("collapsed");
+}
+
+function revealSheetTarget(target, delay = 80) {
+  $("#sheet").classList.remove("collapsed");
+  setTimeout(() => {
+    const element = typeof target === "string" ? document.querySelector(target) : target;
+    element?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, delay);
 }
 
 function getRecents() {
@@ -292,6 +300,7 @@ async function loadNearbyAt(pos, showUserPin = false) {
         <button class="stop-name nearby-stop-open" data-show-stop="${esc(s.id)}">🚏 ${esc(s.name)} <span>Show arrivals ›</span></button>
         <div class="nearby-routes" data-stop-routes="${esc(s.id)}"><small>Select this bus stop to see buses.</small></div>
       </div>`).join("");
+    if (showUserPin) revealSheetTarget("#nearby-out");
     out.querySelectorAll("[data-trip][data-stop]").forEach((b) => {
       b.onclick = () => openTrip(b.dataset.trip, b.dataset.stop || null);
     });
@@ -337,6 +346,7 @@ async function showNearbyStop(stop) {
   try {
     const trips = await api(`/api/passing/${encodeURIComponent(stop.id)}`);
     box.innerHTML = nearbyTripsHTML(trips, stop.id, true);
+    revealSheetTarget(box);
     box.querySelectorAll("[data-trip]").forEach((button) => {
       button.onclick = () => openTrip(button.dataset.trip, button.dataset.stop);
     });
@@ -525,6 +535,7 @@ function selectStop(stop) {
       <button class="btn btn-ghost" style="width:auto;padding:8px 12px" id="btn-all-buses">All buses</button>
     </div>
     <div id="arrival-estimate" class="arrival-card"><small>Loading Namtang arrival estimate…</small></div>
+    <div class="next-step">Next: tap a bus below to open its live details.</div>
     <div id="bus-list">
       ${buses.length ? buses.map((b) => busRowHTML(b, stop)).join("") : "<small>No live buses on this trip.</small>"}
     </div>
@@ -742,6 +753,7 @@ async function selectBus(busId, options = {}) {
     </div>
     ${camHTML}
   `;
+  if (options.userAction) revealSheetTarget(detail);
   $("#btn-alert").onclick = startAlertFlow;
   $("#btn-back-stop")?.addEventListener("click", () => selectStop(state.selectedStop));
   $("#btn-live").onclick = () => createWatch(null);
@@ -1024,6 +1036,23 @@ function clearTripLayers() {
 
 /* ---------- wire up ---------- */
 $("#btn-home").onclick = () => { clearTripLayers(); renderHome(); };
+$("#btn-about").onclick = () => {
+  setSheet(`
+    <div class="about-copy">
+      <h2>About Bus-287</h2>
+      <p><b>Bus-287</b> is the short project nickname for Thai Bus Watch. It comes from the memorable repeated number in this service's address: <b>287287287.xyz</b>.</p>
+      <p>This is an independent experimental civic-tech project for viewing live Bangkok bus locations, nearby stops, arrival information, and links to public traffic-camera services.</p>
+      <p>It is not affiliated with or endorsed by Bangkok Metropolitan Administration or the public transport data providers it references.</p>
+      <button class="btn btn-ghost" id="btn-about-close">Close About</button>
+    </div>
+  `);
+  $("#btn-about-close").onclick = () => {
+    if (state.view === "trip" && state.trip) {
+      if (state.selectedStop) selectStop(state.selectedStop);
+      else renderTripSheet();
+    } else renderHome();
+  };
+};
 const sheet = $("#sheet");
 const sheetHandle = $("#sheet-handle");
 function updateSheetHandle() {
@@ -1055,6 +1084,19 @@ sheetHandle.addEventListener("touchend", (e) => {
   }
   if (delta > 35) sheet.classList.add("collapsed");
   if (delta < -35) sheet.classList.remove("collapsed");
+}, { passive: true });
+let sheetContentTouchY = null;
+let sheetContentStartedAtTop = false;
+sheetContent.addEventListener("touchstart", (event) => {
+  sheetContentTouchY = event.changedTouches[0]?.clientY ?? null;
+  sheetContentStartedAtTop = sheetContent.scrollTop <= 1;
+}, { passive: true });
+sheetContent.addEventListener("touchend", (event) => {
+  if (sheetContentTouchY === null) return;
+  const delta = (event.changedTouches[0]?.clientY ?? sheetContentTouchY) - sheetContentTouchY;
+  sheetContentTouchY = null;
+  if (sheetContentStartedAtTop && delta > 60) sheet.classList.add("collapsed");
+  sheetContentStartedAtTop = false;
 }, { passive: true });
 $("#alert-cancel").onclick = () => { endAlertFlow(); renderTripSheet(); selectBus(state.selectedBus); };
 $("#alert-use-me").onclick = async () => {
