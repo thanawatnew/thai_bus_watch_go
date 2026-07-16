@@ -205,9 +205,10 @@ function renderHome() {
     <div class="onboarding-note">
       <b>1. Select your nearest location first</b>
       <span>Use your location or tap your own nearest point on the map. Then choose a bus stop and bus.</span>
+      <span>Android/iPhone tip: tap or swipe the bar above this panel to close it, then tap the bar again to reopen it.</span>
     </div>
     <button class="btn" id="btn-near">📍 Find nearest bus stops</button>
-    <div class="map-pick-hint">🖱️ Or click anywhere on the map to find the nearest bus stops there.</div>
+    <div class="map-pick-hint">👆 Or tap anywhere on the map to find the nearest bus stops there.</div>
     <details class="optional-route">
       <summary>Optional: open a route by trip ID</summary>
       <div class="input-row">
@@ -246,7 +247,10 @@ async function loadNearby() {
   try {
     pos = await geolocate();
   } catch {
-    out.innerHTML = `<h2>Nearby stops</h2><small>⚠️ Couldn't get your location. Allow location access in Settings → Safari, or enter a trip ID above.</small>`;
+    const locationHelp = window.isSecureContext
+      ? "Allow location access for this site in your browser settings, then try again."
+      : "Phone browsers block location on an HTTP connection. Tap your location on the map instead, or use the site over HTTPS.";
+    out.innerHTML = `<h2>Nearby stops</h2><small>⚠️ Couldn't get your location. ${locationHelp}</small>`;
     return;
   }
   loadNearbyAt(pos, true);
@@ -1020,17 +1024,37 @@ function clearTripLayers() {
 
 /* ---------- wire up ---------- */
 $("#btn-home").onclick = () => { clearTripLayers(); renderHome(); };
-$("#sheet-handle").onclick = () => $("#sheet").classList.toggle("collapsed");
+const sheet = $("#sheet");
+const sheetHandle = $("#sheet-handle");
+function updateSheetHandle() {
+  const collapsed = sheet.classList.contains("collapsed");
+  sheetHandle.textContent = collapsed ? "▲ Open panel" : "▼ Hide panel";
+  sheetHandle.setAttribute("aria-expanded", String(!collapsed));
+}
+let ignoreNextSheetClick = false;
+sheetHandle.onclick = () => {
+  if (ignoreNextSheetClick) {
+    ignoreNextSheetClick = false;
+    return;
+  }
+  sheet.classList.toggle("collapsed");
+};
+new MutationObserver(updateSheetHandle).observe(sheet, { attributes: true, attributeFilter: ["class"] });
+updateSheetHandle();
 let sheetTouchY = null;
-$("#sheet-handle").addEventListener("touchstart", (e) => {
+sheetHandle.addEventListener("touchstart", (e) => {
   sheetTouchY = e.changedTouches[0]?.clientY ?? null;
 }, { passive: true });
-$("#sheet-handle").addEventListener("touchend", (e) => {
+sheetHandle.addEventListener("touchend", (e) => {
   if (sheetTouchY === null) return;
   const delta = (e.changedTouches[0]?.clientY ?? sheetTouchY) - sheetTouchY;
   sheetTouchY = null;
-  if (delta > 35) $("#sheet").classList.add("collapsed");
-  if (delta < -35) $("#sheet").classList.remove("collapsed");
+  if (Math.abs(delta) > 35) {
+    ignoreNextSheetClick = true;
+    setTimeout(() => { ignoreNextSheetClick = false; }, 500);
+  }
+  if (delta > 35) sheet.classList.add("collapsed");
+  if (delta < -35) sheet.classList.remove("collapsed");
 }, { passive: true });
 $("#alert-cancel").onclick = () => { endAlertFlow(); renderTripSheet(); selectBus(state.selectedBus); };
 $("#alert-use-me").onclick = async () => {

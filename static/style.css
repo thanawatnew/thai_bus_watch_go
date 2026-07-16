@@ -68,12 +68,15 @@ html, body {
 }
 #sheet.collapsed { transform: translateY(calc(100% - 52px)); }
 #sheet-handle {
-  flex: 0 0 28px; padding: 10px 0 8px; cursor: pointer;
+  flex: 0 0 52px; padding: 8px 16px; cursor: pointer;
   touch-action: none;
+  border: 0; border-radius: 18px 18px 0 0;
+  background: #252b32; color: #f2f5f7;
+  font: inherit; font-size: 14px; font-weight: 700;
+  text-align: center;
 }
-#sheet-handle::before {
-  content: ""; display: block; width: 42px; height: 4px;
-  border-radius: 4px; background: #3c434b; margin: 0 auto;
+#sheet-handle:focus-visible {
+  outline: 3px solid #7fb8ff; outline-offset: -4px;
 }
 #sheet-content {
   overflow-y: auto; -webkit-overflow-scrolling: touch;
