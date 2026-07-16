@@ -146,8 +146,7 @@ function telegramSetupHTML() {
       in Render → Environment.</div>`;
   }
   if (!state.tg.configured) {
-    return `<div class="tg-setup">⚠️ <b>Notifications are off.</b> The server has no
-      <code>TELEGRAM_BOT_TOKEN</code>. You can still watch buses on the map.</div>`;
+    return "";
   }
   const bot = state.tg.botUsername
     ? `<a href="https://t.me/${esc(state.tg.botUsername)}" style="color:#7fb8ff">@${esc(state.tg.botUsername)}</a>`
