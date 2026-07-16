@@ -21,10 +21,11 @@ var staticFS embed.FS
 type Server struct {
 	tg      *Telegram
 	watches *WatchManager
+	access  *AccessGate
 }
 
 func NewServer(tg *Telegram) *Server {
-	return &Server{tg: tg, watches: NewWatchManager(tg)}
+	return &Server{tg: tg, watches: NewWatchManager(tg), access: NewAccessGate()}
 }
 
 func (s *Server) Handler() http.Handler {
@@ -40,6 +41,8 @@ func (s *Server) Handler() http.Handler {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
+	mux.HandleFunc("GET /api/access/status", s.access.status)
+	mux.HandleFunc("POST /api/access/enter", s.access.enter)
 
 	mux.HandleFunc("GET /api/camera/{id}/frame", s.handleCameraFrame)
 	mux.HandleFunc("POST /api/telegram/webhook", s.handleTelegramWebhook)
@@ -53,7 +56,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/watch", s.handleWatchCreate)
 	mux.HandleFunc("DELETE /api/watch/{id}", s.handleWatchDelete)
 
-	return mux
+	return s.access.protect(mux)
 }
 
 func (s *Server) handlePassingTrips(w http.ResponseWriter, r *http.Request) {

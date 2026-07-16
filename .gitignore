@@ -2,6 +2,7 @@ buswatch.exe
 buswatch
 *.log
 .env
+priority-passes.json
 .env.*
 !.env.example
 deploy/oracle/.env

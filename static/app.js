@@ -3,7 +3,7 @@
 
 const BANGKOK = [13.7563, 100.5018];
 const REFRESH_MS = 5000;
-const APP_VERSION = "0.4.0";
+const APP_VERSION = "0.4.1";
 
 const state = {
   view: "home",          // home | trip | alert-pick
@@ -22,6 +22,7 @@ const state = {
   follow: false,
   alertDraft: null,      // {lat, lon, radiusM}
   tg: { configured: false, connected: false },
+  access: { enabled: false, authorized: true, active: 0, maxUsers: 0, rank: 0 },
   refreshTimer: null,
   watchTimer: null,
   myPos: null,
@@ -156,6 +157,43 @@ function telegramSetupHTML() {
     <code>/start</code>. Alerts will then reach your iPhone as push notifications.</div>`;
 }
 
+async function requirePriorityAccess() {
+  try {
+    const response = await fetch("/api/access/status", { cache: "no-store" });
+    state.access = await response.json();
+  } catch {
+    return true;
+  }
+  if (!state.access.enabled || state.access.authorized) return true;
+  setSheet(`
+    <div class="onboarding-note">
+      <b>Priority pass required</b>
+      <span>${state.access.active} of ${state.access.maxUsers} concurrent places are currently active.</span>
+    </div>
+    <div class="input-row">
+      <input type="text" id="priority-pass-input" autocomplete="off" placeholder="Enter priority pass">
+      <button class="btn" id="priority-pass-enter">Enter</button>
+    </div>
+    <small id="priority-pass-error">Access stops when the concurrent-user limit is full.</small>
+  `);
+  const enter = async () => {
+    const pass = $("#priority-pass-input").value.trim();
+    if (!pass) return;
+    const response = await fetch("/api/access/enter", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pass }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      $("#priority-pass-error").textContent = result.error || "Access denied";
+      return;
+    }
+    location.reload();
+  };
+  $("#priority-pass-enter").onclick = enter;
+  $("#priority-pass-input").addEventListener("keydown", (event) => { if (event.key === "Enter") enter(); });
+  return false;
+}
+
 /* ---------- home view ---------- */
 function renderHome() {
   state.view = "home";
@@ -163,6 +201,7 @@ function renderHome() {
   const recents = getRecents();
   setSheet(`
     ${telegramSetupHTML()}
+    ${state.access.enabled ? `<small class="access-count">Priority access: ${state.access.active}/${state.access.maxUsers} active · pass rank ${state.access.rank}</small>` : ""}
     <div class="onboarding-note">
       <b>1. Select your nearest location first</b>
       <span>Use your location or tap your own nearest point on the map. Then choose a bus stop and bus.</span>
@@ -182,7 +221,7 @@ function renderHome() {
         data-trip="${esc(r.tripId)}">${esc(r.name)} → ${esc(r.headsign)}</button>`).join("") + `</div>` : ""}
     <div id="nearby-out"></div>
     <button class="btn btn-ghost btn-clear-cache" id="btn-clear-cache">🧹 Clear saved data & cache</button>
-    <small class="app-version">Thai Bus Watch v${APP_VERSION}</small>
+    <small class="app-version">Version ${APP_VERSION}</small>
   `);
 
   $("#btn-near").onclick = loadNearby;
@@ -243,7 +282,7 @@ async function loadNearbyAt(pos, showUserPin = false) {
         }, 280);
       }).addTo(layers.stops);
     });
-    out.innerHTML = `<h2>2. Select a bus stop</h2><small>Choose your stop first; routes and live arrivals appear afterward.</small>` + stops.slice(0, 10).map((s) => `
+    out.innerHTML = `<div class="onboarding-note step-two"><b>2. Select a bus stop</b><span>Choose your stop first; routes and live arrivals appear afterward.</span></div>` + stops.slice(0, 10).map((s) => `
       <div class="stop-card" id="near-stop-${esc(s.id)}">
         <button class="stop-name nearby-stop-open" data-show-stop="${esc(s.id)}">🚏 ${esc(s.name)} <span>Show arrivals ›</span></button>
         <div class="nearby-routes" data-stop-routes="${esc(s.id)}"><small>Select this bus stop to see buses.</small></div>
@@ -642,6 +681,7 @@ async function selectBus(busId, options = {}) {
         <a id="camera-link" class="btn btn-ghost btn-direct-camera"
           data-camera-id="${esc(camId)}" href="${esc(d.nearestCamera.feed_url)}"
           target="_blank" rel="noopener">Open camera on BMA ↗</a>
+        <div class="camera-site-note">ℹ️ BMA Traffic is a separate website. On first use, you must open and allow the camera feed there yourself. If it does not start, allow the BMA page, return here, and open it again.</div>
         <div class="btn-row camera-nav">
           <button class="btn btn-ghost" id="btn-prev-camera" ${state.cameraIndexOffset <= 0 ? "disabled" : ""}>‹ Previous camera</button>
           <button class="btn btn-ghost" id="btn-next-camera" ${state.cameraIndexOffset >= cameraCandidates.length - 1 ? "disabled" : ""}>Next camera ›</button>
@@ -1003,6 +1043,7 @@ $("#alert-use-me").onclick = async () => {
 };
 
 async function init() {
+  if (!await requirePriorityAccess()) return;
   // Wait for the first status response before drawing the home sheet. Without
   // this, the default "Telegram off" state flashes and remains in the sheet
   // even after the status pill has updated.

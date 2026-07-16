@@ -89,3 +89,25 @@ for bus GPS and stops; [bmatraffic.com](http://www.bmatraffic.com) for traffic c
 ## License
 
 AGPL-3.0, same as the upstream project.
+# Priority-pass admission control
+
+Priority-pass mode is optional and disabled by default. Generate 50 ranked
+passes (the first code has the highest priority):
+
+```sh
+./scripts/generate_priority_passes.sh 50 priority-passes.json
+```
+
+Enable it when starting the server:
+
+```sh
+PRIORITY_PASS_ENABLED=true \
+PRIORITY_PASS_FILE=/path/to/priority-passes.json \
+MAX_CONCURRENT_USERS=10 \
+./buswatch
+```
+
+Set `PRIORITY_PASS_ENABLED=false` to turn the mode off. The maximum is dynamic
+configuration through `MAX_CONCURRENT_USERS`; restart the service after changing
+either setting. Sessions expire after two inactive minutes. When full, a
+higher-ranked pass can replace the lowest-ranked active session.
