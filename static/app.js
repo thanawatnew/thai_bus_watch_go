@@ -3,7 +3,8 @@
 
 const BANGKOK = [13.7563, 100.5018];
 const REFRESH_MS = 5000;
-const APP_VERSION = "0.4.3";
+const APP_VERSION = "0.4.4";
+const BMA_PREFLIGHT_KEY = "bmaCameraPreflightV1";
 
 const state = {
   view: "home",          // home | trip | alert-pick
@@ -106,6 +107,7 @@ async function clearAppCache() {
   localStorage.removeItem("recents");
   localStorage.removeItem("lastStopSelection");
   localStorage.removeItem("bmaCameraNoticeSeen");
+  localStorage.removeItem(BMA_PREFLIGHT_KEY);
   if ("caches" in window) {
     await Promise.all((await caches.keys()).map((key) => caches.delete(key)));
   }
@@ -1047,9 +1049,14 @@ $("#btn-about").onclick = () => {
       <p><b>Bus-287</b> is the short project nickname for Thai Bus Watch. It comes from the memorable repeated number in this service's address: <b>287287287.xyz</b>.</p>
       <p>This is an independent experimental civic-tech project for viewing live Bangkok bus locations, nearby stops, arrival information, and links to public traffic-camera services.</p>
       <p>It is not affiliated with or endorsed by Bangkok Metropolitan Administration or the public transport data providers it references.</p>
+      <button class="btn btn-ghost" id="btn-retest-camera">Retest BMA camera access</button>
       <button class="btn btn-ghost" id="btn-about-close">Close About</button>
     </div>
   `);
+  $("#btn-retest-camera").onclick = () => {
+    localStorage.removeItem(BMA_PREFLIGHT_KEY);
+    location.reload();
+  };
   $("#btn-about-close").onclick = () => {
     if (state.view === "trip" && state.trip) {
       if (state.selectedStop) selectStop(state.selectedStop);
@@ -1114,6 +1121,7 @@ $("#alert-use-me").onclick = async () => {
 };
 
 async function init() {
+  await requireCameraPreflight();
   if (!await requirePriorityAccess()) return;
   // Wait for the first status response before drawing the home sheet. Without
   // this, the default "Telegram off" state flashes and remains in the sheet
@@ -1129,6 +1137,27 @@ async function init() {
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
+}
+
+function requireCameraPreflight() {
+  try {
+    if (localStorage.getItem(BMA_PREFLIGHT_KEY)) return Promise.resolve();
+  } catch { /* continue with the one-time check */ }
+  const overlay = $("#camera-preflight");
+  const result = $("#preflight-result");
+  overlay.classList.remove("hidden");
+  return new Promise((resolve) => {
+    $("#btn-test-bma").addEventListener("click", () => result.classList.remove("hidden"));
+    const finish = (cameraWorked) => {
+      try {
+        localStorage.setItem(BMA_PREFLIGHT_KEY, JSON.stringify({ cameraWorked, checkedAt: Date.now() }));
+      } catch { /* private browsing may not retain the answer */ }
+      overlay.classList.add("hidden");
+      resolve();
+    };
+    $("#btn-bma-worked").onclick = () => finish(true);
+    $("#btn-bma-failed").onclick = () => finish(false);
+  });
 }
 
 init();

@@ -20,7 +20,7 @@
 
 <div id="topbar">
   <button id="btn-home" title="Home">🚌</button>
-  <div id="topbar-title">Thai Bus Watch <small class="topbar-version">v0.4.3</small></div>
+  <div id="topbar-title">Thai Bus Watch <small class="topbar-version">v0.4.4</small></div>
   <button id="btn-about" class="topbar-icon" type="button" title="About Bus-287" aria-label="About Bus-287">?</button>
   <div id="tg-pill" class="pill pill-off" title="Telegram status">⋯</div>
 </div>
@@ -37,6 +37,27 @@
   <div class="overlay-actions">
     <button id="alert-use-me" class="btn">📍 Use my location</button>
     <button id="alert-cancel" class="btn btn-ghost">Cancel</button>
+  </div>
+</div>
+
+<div id="camera-preflight" class="preflight-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="preflight-title">
+  <div class="preflight-card">
+    <h1 id="preflight-title">Test BMA camera access</h1>
+    <p>BMA Traffic is a separate, HTTP-only website. Its availability and content are controlled by BMA Traffic, not Bus-287.</p>
+    <ol class="preflight-steps">
+      <li><b>Open the test.</b> Tap the blue BMA camera button below.</li>
+      <li><b>Allow the external page.</b> If your browser shows a warning, continue only if you accept opening BMA's HTTP website.</li>
+      <li><b>Check the camera.</b> Wait for the BMA page and confirm whether its camera content appears.</li>
+      <li><b>Return to Bus-287.</b> Come back to this browser tab.</li>
+      <li><b>Report the result.</b> Select “Yes” or “No” below to enter Bus Watch.</li>
+    </ol>
+    <a class="btn" id="btn-test-bma" href="http://www.bmatraffic.com/PlayVideo.aspx?ID=1443" target="_blank" rel="noopener">🎥 Open BMA camera test ↗</a>
+    <div id="preflight-result" class="hidden">
+      <p><b>Did the BMA camera page open correctly?</b></p>
+      <button class="btn" id="btn-bma-worked">Yes, camera worked — continue</button>
+      <button class="btn btn-ghost" id="btn-bma-failed">No — continue with bus tracking only</button>
+    </div>
+    <small>By continuing, you understand that external camera access may be insecure, unavailable, or behave differently in each browser.</small>
   </div>
 </div>
 
