@@ -310,6 +310,11 @@ input[type=text]:focus { border-color: #2f6fed; }
 .preflight-steps b { color: #e8eaed; }
 .preflight-card .btn { margin: 9px 0; text-decoration: none; }
 .preflight-card > small { display: block; margin-top: 12px; line-height: 1.45; }
+.preflight-help {
+  margin-top: 12px; padding: 12px; border-radius: 12px;
+  background: #24211a; border: 1px solid rgba(232,178,90,.3);
+}
+.preflight-help p { margin: 6px 0; }
 
 /* ---------- camera viewer ---------- */
 .cam-box {

@@ -3,7 +3,7 @@
 
 const BANGKOK = [13.7563, 100.5018];
 const REFRESH_MS = 5000;
-const APP_VERSION = "0.5.5";
+const APP_VERSION = "0.5.6";
 const BMA_PREFLIGHT_KEY = "bmaCameraPreflightV1";
 const I18N = {
   en: { step:"Step", open:"Open", hide:"Hide", location:"Choose a location", locationHelp:"Use your location or tap your position on the map.", stop:"Choose a nearby stop", stopHelp:"Tap a stop to see its live routes and arrivals.", route:"Choose a bus route", routeHelp:"Tap the route you want to follow.", routeStop:"Choose a route stop", routeStopHelp:"Tap the stop where you want to meet the bus.", bus:"Choose a live bus", busHelp:"Tap a bus below to open its live details.", view:"View bus and camera", viewHelp:"Review the live bus details, then open the available traffic camera.", reset:"Start over from Step 1 and run the BMA camera test again? Your recent routes will be kept.", preflightTitle:"Test BMA camera access", iphoneTitle:"iPhone users: Firefox is recommended.", iphoneText:"Safari may not open BMA Traffic's external HTTP-only camera page reliably. Open Bus-287 in Firefox before running this test.", preflightIntro:"BMA Traffic is a separate, HTTP-only website. Its availability and content are controlled by BMA Traffic, not Bus-287.", preflightStep1:"1. Open the test: tap the blue BMA camera button below.", preflightStep2:"2. Allow the external page only if you accept opening BMA's HTTP website.", preflightStep3:"3. Check whether the BMA camera content appears.", preflightStep4:"4. Return to this Bus-287 browser tab.", preflightStep5:"5. Report Yes or No below to enter Bus Watch.", openBmaTest:"🎥 Open BMA camera test ↗", bmaWorkedQuestion:"Did the BMA camera page open correctly?", bmaYes:"Yes, camera worked — continue", bmaNo:"No — continue with bus tracking only", preflightDisclaimer:"By continuing, you understand that external camera access may be insecure, unavailable, or behave differently in each browser." },
@@ -29,6 +29,8 @@ Object.assign(I18N.en, {
   cameraAvailable: "🎥 Traffic camera available", cameraAvailableHelp: "Tap to view the nearest camera for this bus ↓",
   cameraNote: "BMA Traffic is a separate website. On first use, you must open and allow the camera feed there yourself. If it does not start, allow the BMA page, return here, and open it again.",
   alertPlace: "🔔 Alert me when it reaches a place",
+  bmaHelpTitle: "Camera did not open?", bmaHelpText: "Open the BMA camera page directly first, allow or start the camera feed there, then return to Bus-287 and run the test again.",
+  openBmaAgain: "Open BMA camera page again ↗", continueWithoutCamera: "I understand — continue without cameras",
 });
 Object.assign(I18N.th, {
   resetLabel: "↻ รีเซ็ต", twoNearest: "รถที่กำลังวิ่งใกล้ที่สุด 2 คัน", allBuses: "รถทั้งหมด",
@@ -50,6 +52,8 @@ Object.assign(I18N.th, {
   cameraAvailable: "🎥 มีกล้องจราจร", cameraAvailableHelp: "แตะเพื่อดูกล้องที่ใกล้รถคันนี้ที่สุด ↓",
   cameraNote: "BMA Traffic เป็นเว็บไซต์แยกต่างหาก เมื่อใช้งานครั้งแรก คุณต้องเปิดและอนุญาตฟีดกล้องบนเว็บไซต์นั้นด้วยตนเอง หากกล้องไม่เริ่มทำงาน ให้อนุญาตหน้า BMA จากนั้นกลับมาที่นี่แล้วเปิดอีกครั้ง",
   alertPlace: "🔔 แจ้งเตือนเมื่อรถถึงสถานที่",
+  bmaHelpTitle: "เปิดกล้องไม่ได้ใช่หรือไม่?", bmaHelpText: "ให้เปิดหน้ากล้อง BMA โดยตรงก่อน อนุญาตหรือเริ่มฟีดกล้องบนเว็บไซต์นั้น จากนั้นกลับมายัง Bus-287 แล้วทดสอบอีกครั้ง",
+  openBmaAgain: "เปิดหน้ากล้อง BMA อีกครั้ง ↗", continueWithoutCamera: "เข้าใจแล้ว — ใช้งานต่อโดยไม่ใช้กล้อง",
 });
 let currentLang = (() => { try { return localStorage.getItem("buswatchLanguage") || (navigator.language?.startsWith("th") ? "th" : "en"); } catch { return "en"; } })();
 const t = (key) => I18N[currentLang]?.[key] || I18N.en[key] || key;
@@ -1246,6 +1250,7 @@ function requireCameraPreflight() {
   } catch { /* continue with the one-time check */ }
   const overlay = $("#camera-preflight");
   const result = $("#preflight-result");
+  const help = $("#preflight-help");
   if (/iPhone|iPod/i.test(navigator.userAgent)) {
     $("#iphone-browser-warning").classList.remove("hidden");
   }
@@ -1260,7 +1265,11 @@ function requireCameraPreflight() {
       resolve();
     };
     $("#btn-bma-worked").onclick = () => finish(true);
-    $("#btn-bma-failed").onclick = () => finish(false);
+    $("#btn-bma-failed").onclick = () => {
+      help.classList.remove("hidden");
+      help.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    };
+    $("#btn-bma-continue-without").onclick = () => finish(false);
   });
 }
 

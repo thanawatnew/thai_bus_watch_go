@@ -20,7 +20,7 @@
 
 <div id="topbar">
   <button id="btn-home" title="Home">🚌</button>
-  <div id="topbar-title">Thai Bus Watch <small class="topbar-version">v0.5.5</small></div>
+  <div id="topbar-title">Thai Bus Watch <small class="topbar-version">v0.5.6</small></div>
   <select id="language-select" title="Language" aria-label="Language">
     <option value="en">EN</option>
     <option value="th">ไทย</option>
@@ -65,6 +65,12 @@
       <p><b data-i18n="bmaWorkedQuestion">Did the BMA camera page open correctly?</b></p>
       <button class="btn" id="btn-bma-worked" data-i18n="bmaYes">Yes, camera worked — continue</button>
       <button class="btn btn-ghost" id="btn-bma-failed" data-i18n="bmaNo">No — continue with bus tracking only</button>
+    </div>
+    <div id="preflight-help" class="preflight-help hidden">
+      <b data-i18n="bmaHelpTitle">Camera did not open?</b>
+      <p data-i18n="bmaHelpText">Open the BMA camera page directly first, allow or start the camera feed there, then return to Bus-287 and run the test again.</p>
+      <a class="btn" href="http://www.bmatraffic.com/PlayVideo.aspx?ID=1443" target="_blank" rel="noopener" data-i18n="openBmaAgain">Open BMA camera page again ↗</a>
+      <button class="btn btn-ghost" id="btn-bma-continue-without" data-i18n="continueWithoutCamera">I understand — continue without cameras</button>
     </div>
     <small data-i18n="preflightDisclaimer">By continuing, you understand that external camera access may be insecure, unavailable, or behave differently in each browser.</small>
   </div>
