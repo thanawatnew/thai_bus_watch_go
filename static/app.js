@@ -282,7 +282,8 @@ async function loadNearbyAt(pos, showUserPin = false) {
     L.circleMarker(pos, { radius: 9, color: "#fff", weight: 2, fillColor: "#8b5cf6", fillOpacity: 1 })
       .bindTooltip("Your selected location", { permanent: false }).addTo(layers.me);
   }
-  map.setView(pos, Math.max(map.getZoom(), 16));
+  const desktop = window.matchMedia("(min-width: 760px)").matches;
+  map.setView(pos, Math.max(map.getZoom(), desktop ? 17 : 16));
   out.innerHTML = `<h2>Nearby stops</h2><small>Loading routes…</small>`;
   try {
     const stops = await api(`/api/nearby?lat=${pos[0]}&lon=${pos[1]}`);
