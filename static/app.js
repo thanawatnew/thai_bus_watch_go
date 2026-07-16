@@ -608,7 +608,7 @@ async function selectBus(busId, options = {}) {
       state.activeCameraId = nextCameraId;
       state.pendingCameraId = null;
       layers.camera.clearLayers();
-      camId = d.nearestCamera.ip || d.nearestCamera.id;
+      camId = d.nearestCamera.id;
       const cam = d.nearestCamera;
       const busLat = Number(d.bus.snapped_lat) || Number(d.bus.lat);
       const busLon = Number(d.bus.snapped_lon) || Number(d.bus.lon);
@@ -629,7 +629,7 @@ async function selectBus(busId, options = {}) {
         <h2>🎥 ${d.cameraSelection === "nearest" ? "Nearest" : "Upcoming"} traffic camera <small>· ${Math.round(d.cameraDistanceM)} m from bus · ${d.cameraOnRoute ? "on route" : "near route"}</small></h2>
         <div class="camera-link-info">
           <b>${esc(d.nearestCamera.name_th || d.nearestCamera.name_en || d.nearestCamera.id)}</b>
-          <small>BMA camera ${esc(d.nearestCamera.id)} · stream ID ${esc(camId)}</small>
+          <small>Current camera ID: ${esc(d.nearestCamera.id)}</small>
         </div>
         <a id="camera-link" class="btn btn-ghost btn-direct-camera"
           data-camera-id="${esc(camId)}" href="${esc(d.nearestCamera.feed_url)}"

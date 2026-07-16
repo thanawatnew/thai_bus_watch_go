@@ -59,10 +59,10 @@ func init() {
 
 func normalizeCameraFeeds(cameras []Camera) {
 	for i := range cameras {
-		// BMA's numeric value is only its map/database ID. The camera player
-		// expects the address in the eighth catalog field.
-		if strings.TrimSpace(cameras[i].IP) != "" {
-			cameras[i].FeedURL = bmaPlayURL + url.QueryEscape(cameras[i].IP)
+		// Public camera links expose only BMA's numeric camera ID. The internal
+		// camera address remains available to server-side frame handling only.
+		if strings.TrimSpace(cameras[i].ID) != "" {
+			cameras[i].FeedURL = bmaPlayURL + url.QueryEscape(cameras[i].ID)
 		}
 	}
 }
@@ -249,7 +249,7 @@ func ParseLocations(locationsBlock string) []Camera {
 			Lon:         lon,
 			IP:          strings.TrimSpace(m[8]),
 			Icon:        strings.TrimSpace(m[9]),
-			FeedURL:     bmaPlayURL + url.QueryEscape(strings.TrimSpace(m[8])),
+			FeedURL:     bmaPlayURL + url.QueryEscape(id),
 		})
 	}
 
