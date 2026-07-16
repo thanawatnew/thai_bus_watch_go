@@ -653,7 +653,9 @@ async function selectBus(busId, options = {}) {
     if (speed) speed.textContent = `${Math.round(Number(b.speed) || 0)} km/h`;
     if (updated) updated.textContent = fmtAgo(b.received);
     const shownCamera = document.getElementById("cam-img")?.dataset.cameraId || null;
-    if ((!camId && !shownCamera) || (camId && String(camId) === shownCamera)) return;
+    // Missing camera data means "keep what is already rendered", never
+    // "remove the camera". BMA availability can fluctuate between refreshes.
+    if (!camId || (shownCamera && String(camId) === shownCamera)) return;
   }
   const stopBuses = state.selectedStop
     ? (state.trip.gpsList || []).filter((candidate) => !state.visibleBusIds || state.visibleBusIds.has(candidate.id))
@@ -708,6 +710,8 @@ async function selectBus(busId, options = {}) {
     if (desktop) framePins(); else setTimeout(framePins, 320);
   };
   $("#btn-map-pins")?.addEventListener("click", showPins);
+  document.querySelector(".cam-box")?.addEventListener("click", (event) => event.stopPropagation());
+  document.querySelector(".cam-box")?.addEventListener("pointerdown", (event) => event.stopPropagation());
   $("#btn-prev-camera")?.addEventListener("click", () => {
     state.cameraIndexOffset = Math.max(0, state.cameraIndexOffset - 1);
     state.activeCameraId = null;

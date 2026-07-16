@@ -1,6 +1,6 @@
 /* Minimal service worker: cache the app shell so the PWA opens instantly.
    Live data always goes to the network. */
-const CACHE = "buswatch-v30";
+const CACHE = "buswatch-v31";
 const SHELL = ["/", "/style.css", "/app.js", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
