@@ -9,6 +9,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -53,6 +54,17 @@ func init() {
 	// catalog keeps location matching available; live frames still come from
 	// BMA and are loaded directly by the user's browser.
 	_ = json.Unmarshal(bundledCamerasJSON, &cameraCache.cameras)
+	normalizeCameraFeeds(cameraCache.cameras)
+}
+
+func normalizeCameraFeeds(cameras []Camera) {
+	for i := range cameras {
+		// BMA's numeric value is only its map/database ID. The camera player
+		// expects the address in the eighth catalog field.
+		if strings.TrimSpace(cameras[i].IP) != "" {
+			cameras[i].FeedURL = bmaPlayURL + url.QueryEscape(cameras[i].IP)
+		}
+	}
 }
 
 // CachedBMACameras returns immediately. Bus-detail HTTP requests use this so a
@@ -237,7 +249,7 @@ func ParseLocations(locationsBlock string) []Camera {
 			Lon:         lon,
 			IP:          strings.TrimSpace(m[8]),
 			Icon:        strings.TrimSpace(m[9]),
-			FeedURL:     bmaPlayURL + id,
+			FeedURL:     bmaPlayURL + url.QueryEscape(strings.TrimSpace(m[8])),
 		})
 	}
 

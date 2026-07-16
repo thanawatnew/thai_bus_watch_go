@@ -608,7 +608,7 @@ async function selectBus(busId, options = {}) {
       state.activeCameraId = nextCameraId;
       state.pendingCameraId = null;
       layers.camera.clearLayers();
-      camId = d.nearestCamera.id;
+      camId = d.nearestCamera.ip || d.nearestCamera.id;
       const cam = d.nearestCamera;
       const busLat = Number(d.bus.snapped_lat) || Number(d.bus.lat);
       const busLon = Number(d.bus.snapped_lon) || Number(d.bus.lon);

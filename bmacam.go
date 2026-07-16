@@ -6,8 +6,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
+	"net/netip"
 	"net/url"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -123,9 +123,10 @@ func (c *camSession) Frame(ctx context.Context, camID string) ([]byte, error) {
 }
 
 // GetCameraFrame is the package-level helper used by the server and watcher.
-func GetCameraFrame(ctx context.Context, camID string) ([]byte, error) {
-	if _, err := strconv.Atoi(camID); err != nil {
-		return nil, fmt.Errorf("invalid camera id %q", camID)
+func GetCameraFrame(ctx context.Context, cameraAddress string) ([]byte, error) {
+	addr, err := netip.ParseAddr(cameraAddress)
+	if err != nil || !addr.Is4() {
+		return nil, fmt.Errorf("invalid camera address %q", cameraAddress)
 	}
-	return bmaCam.Frame(ctx, camID)
+	return bmaCam.Frame(ctx, cameraAddress)
 }
