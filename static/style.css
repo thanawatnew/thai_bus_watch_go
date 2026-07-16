@@ -183,11 +183,14 @@ input[type=text]:focus { border-color: #2f6fed; }
 }
 .trip-id-line { color: #7fb8ff; font-size: 12px; font-weight: 600; margin-bottom: 2px; }
 .route-chip small { color: inherit; opacity: .82; }
-.next-step {
+.guide-banner {
   margin: 12px 0 4px; padding: 10px 12px; border-radius: 12px;
   background: #1d2940; border: 1px solid rgba(127,184,255,.3);
-  color: #b9d7ff; font-size: 14px; font-weight: 700;
+  color: #b9d7ff; font-size: 14px; scroll-margin-top: 8px;
 }
+.guide-banner b, .guide-banner span { display: block; }
+.guide-banner b { font-weight: 800; }
+.guide-banner span { margin-top: 3px; color: #a9bfdc; font-size: 12px; line-height: 1.4; }
 .about-copy { line-height: 1.55; color: #cbd1d8; }
 .about-copy h2 { color: #e8eaed; font-size: 20px; margin-top: 4px; }
 .camera-available {

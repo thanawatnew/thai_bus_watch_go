@@ -3,7 +3,7 @@
 
 const BANGKOK = [13.7563, 100.5018];
 const REFRESH_MS = 5000;
-const APP_VERSION = "0.4.5";
+const APP_VERSION = "0.4.6";
 const BMA_PREFLIGHT_KEY = "bmaCameraPreflightV1";
 
 const state = {
@@ -89,6 +89,12 @@ function revealSheetTarget(target, delay = 80) {
     const element = typeof target === "string" ? document.querySelector(target) : target;
     element?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, delay);
+}
+
+function guideBanner(number, title, instruction) {
+  return `<div class="guide-banner" id="guide-step-${number}">
+    <b>Step ${number} of 5 · ${esc(title)}</b><span>${esc(instruction)}</span>
+  </div>`;
 }
 
 function getRecents() {
@@ -182,6 +188,7 @@ async function requirePriorityAccess() {
   }
   if (!state.access.enabled || state.access.authorized) return true;
   setSheet(`
+    ${guideBanner(1, "Choose a location", "Use your location or tap your position on the map.")}
     <div class="onboarding-note">
       <b>Priority pass required</b>
       <span>${state.access.active} of ${state.access.maxUsers} concurrent places are currently active.</span>
@@ -305,13 +312,13 @@ async function loadNearbyAt(pos, showUserPin = false) {
         }, 280);
       }).addTo(layers.stops);
     });
-    out.innerHTML = `<div class="onboarding-note step-two"><b>2. Select a bus stop</b><span>Choose your stop first; routes and live arrivals appear afterward.</span></div>` + stops.slice(0, 10).map((s) => `
+    out.innerHTML = `${guideBanner(2, "Choose a nearby stop", "Tap a stop to see its live routes and arrivals.")}` + stops.slice(0, 10).map((s) => `
       <div class="stop-card" id="near-stop-${esc(s.id)}">
         <button class="stop-name nearby-stop-open" data-show-stop="${esc(s.id)}">🚏 ${esc(s.name)} <span>Show arrivals ›</span></button>
         <div class="nearby-routes" data-stop-routes="${esc(s.id)}"><small>Select this bus stop to see buses.</small></div>
       </div>`).join("");
     setGuideStep(2, "Choose a nearby stop");
-    if (showUserPin) revealSheetTarget("#nearby-out");
+    revealSheetTarget("#guide-step-2");
     out.querySelectorAll("[data-trip][data-stop]").forEach((b) => {
       b.onclick = () => openTrip(b.dataset.trip, b.dataset.stop || null);
     });
@@ -356,9 +363,10 @@ async function showNearbyStop(stop) {
   box.innerHTML = `<small>Loading live arrivals for ${esc(stop.name)}…</small>`;
   try {
     const trips = await api(`/api/passing/${encodeURIComponent(stop.id)}`);
-    box.innerHTML = nearbyTripsHTML(trips, stop.id, true);
+    document.querySelectorAll("#guide-step-3").forEach((banner) => banner.remove());
+    box.innerHTML = guideBanner(3, "Choose a bus route", "Tap the route you want to follow.") + nearbyTripsHTML(trips, stop.id, true);
     setGuideStep(3, "Choose a bus route");
-    revealSheetTarget(box);
+    revealSheetTarget(box.querySelector("#guide-step-3"));
     box.querySelectorAll("[data-trip]").forEach((button) => {
       button.onclick = () => openTrip(button.dataset.trip, button.dataset.stop);
     });
@@ -471,7 +479,7 @@ function renderTripSheet() {
       <button class="btn btn-ghost" style="width:auto;padding:8px 12px" id="btn-back">‹ Back</button>
     </div>
     ${telegramSetupHTML()}
-    <h2>1. Choose your bus stop</h2>
+    ${guideBanner(2, "Choose a route stop", "Tap the stop where you want to meet the bus.")}
     <small>Tap a stop below or tap its pin on the map. Buses will be sorted nearest-first afterward.</small>
     <div id="stop-list" class="route-stop-list">
       ${(t.stopList || []).length ? t.stopList.map((s) => `
@@ -549,7 +557,7 @@ function selectStop(stop) {
       <button class="btn btn-ghost" style="width:auto;padding:8px 12px" id="btn-all-buses">All buses</button>
     </div>
     <div id="arrival-estimate" class="arrival-card"><small>Loading Namtang arrival estimate…</small></div>
-    <div class="next-step">Next: tap a bus below to open its live details.</div>
+    ${guideBanner(4, "Choose a live bus", "Tap a bus below to open its live details.")}
     <div id="bus-list">
       ${buses.length ? buses.map((b) => busRowHTML(b, stop)).join("") : "<small>No live buses on this trip.</small>"}
     </div>
@@ -568,6 +576,7 @@ function selectStop(stop) {
       maxZoom: 16,
     });
   } else map.setView([stop.location.lat, stop.location.lon], 16);
+  revealSheetTarget("#guide-step-4");
 }
 
 async function loadArrivalEstimate(stop) {
@@ -752,6 +761,7 @@ async function selectBus(busId, options = {}) {
         </button>`).join("")}</div>
     </div>` : "";
   detail.innerHTML = `
+    ${guideBanner(5, "View bus and camera", "Review the live bus details, then open the available traffic camera.")}
     <h2>Bus ${esc(plate)}</h2>
     ${state.selectedStop ? `<button class="btn btn-ghost btn-back-stop" id="btn-back-stop">‹ Other buses at ${esc(state.selectedStop.stopName)}</button>` : ""}
     ${busSwitcher}
@@ -771,7 +781,7 @@ async function selectBus(busId, options = {}) {
     </div>
     ${camHTML}
   `;
-  if (options.userAction) revealSheetTarget(detail);
+  if (options.userAction) revealSheetTarget("#guide-step-5");
   $("#btn-view-camera")?.addEventListener("click", () => revealSheetTarget("#camera-section", 0));
   $("#btn-alert").onclick = startAlertFlow;
   $("#btn-back-stop")?.addEventListener("click", () => selectStop(state.selectedStop));
@@ -796,19 +806,6 @@ async function selectBus(busId, options = {}) {
     if (desktop) framePins(); else setTimeout(framePins, 320);
   };
   $("#btn-map-pins")?.addEventListener("click", showPins);
-  $("#camera-link")?.addEventListener("click", (event) => {
-    if (localStorage.getItem("bmaCameraNoticeSeen") === "1") return;
-    const proceed = window.confirm(
-      "BMA camera is a separate website. The first time, you must open and access the BMA traffic feed yourself. " +
-      "If the camera does not start, allow the BMA page in your browser, then return and tap this link again.\n\n" +
-      "Open BMA camera now?"
-    );
-    if (!proceed) {
-      event.preventDefault();
-      return;
-    }
-    localStorage.setItem("bmaCameraNoticeSeen", "1");
-  });
   $("#btn-prev-camera")?.addEventListener("click", () => {
     state.cameraIndexOffset = Math.max(0, state.cameraIndexOffset - 1);
     state.activeCameraId = null;
