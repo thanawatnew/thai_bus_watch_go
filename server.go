@@ -166,7 +166,11 @@ func (s *Server) handleBus(w http.ResponseWriter, r *http.Request) {
 		"headsign":  trip.TripHeadsign,
 	}
 
-	if cameras, err := GetBMACameras(ctx); err == nil && len(cameras) > 0 {
+	cameras := CachedBMACameras()
+	if len(cameras) == 0 {
+		RefreshBMACamerasAsync()
+	}
+	if len(cameras) > 0 {
 		routeCameras := CamerasNearShape(cameras, trip.ShapeGeom, 120)
 		if len(routeCameras) == 0 {
 			routeCameras = cameras

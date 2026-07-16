@@ -35,8 +35,48 @@ type Camera struct {
 
 var cameraCache struct {
 	sync.Mutex
-	cameras   []Camera
-	fetchedAt time.Time
+	cameras     []Camera
+	fetchedAt   time.Time
+	attemptedAt time.Time
+	refreshing  bool
+}
+
+const bmaRetryBackoff = 5 * time.Minute
+
+// CachedBMACameras returns immediately. Bus-detail HTTP requests use this so a
+// slow or unreachable BMA site can never hold up the rest of the UI.
+func CachedBMACameras() []Camera {
+	cameraCache.Lock()
+	defer cameraCache.Unlock()
+	return append([]Camera(nil), cameraCache.cameras...)
+}
+
+// RefreshBMACamerasAsync refreshes the rarely-changing camera list without
+// delaying a browser response. Failed attempts are backed off because some
+// cloud networks cannot reach bmatraffic.com reliably.
+func RefreshBMACamerasAsync() {
+	cameraCache.Lock()
+	if cameraCache.refreshing || time.Since(cameraCache.attemptedAt) < bmaRetryBackoff {
+		cameraCache.Unlock()
+		return
+	}
+	cameraCache.refreshing = true
+	cameraCache.attemptedAt = time.Now()
+	cameraCache.Unlock()
+
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+		defer cancel()
+		cameras, err := fetchBMACameras(ctx)
+
+		cameraCache.Lock()
+		defer cameraCache.Unlock()
+		cameraCache.refreshing = false
+		if err == nil && len(cameras) > 0 {
+			cameraCache.cameras = cameras
+			cameraCache.fetchedAt = time.Now()
+		}
+	}()
 }
 
 // GetBMACameras scrapes the BMA traffic page for the camera list.
@@ -49,6 +89,7 @@ func GetBMACameras(ctx context.Context) ([]Camera, error) {
 	if cameraCache.cameras != nil && time.Since(cameraCache.fetchedAt) < bmaCacheTTL {
 		return cameraCache.cameras, nil
 	}
+	cameraCache.attemptedAt = time.Now()
 
 	cameras, err := fetchBMACameras(ctx)
 	if err != nil {
