@@ -20,6 +20,7 @@ Object.assign(I18N.en, {
   showArrivals: "Show arrivals ›", selectStopBuses: "Select this bus stop to see buses.",
   backToStop: "‹ Back to selected stop",
   routesAtStop: "Live routes serving this stop", loadingRoutes: "Loading live routes…", back: "‹ Back",
+  busesOnMap: "Live bus icons are shown on the map. Tap one to open its route.",
   homeTitle: "1. Select your nearest location first",
   homeHelp: "Use your location or tap your position on the map. Then choose a bus stop and bus.",
   mobileTip: "Android/iPhone tip: tap or swipe the bar above this panel to hide it, then tap the bar again to reopen it.",
@@ -55,6 +56,7 @@ Object.assign(I18N.th, {
   showArrivals: "ดูรถที่จะมาถึง ›", selectStopBuses: "เลือกป้ายนี้เพื่อดูรถโดยสาร",
   backToStop: "‹ กลับไปยังป้ายที่เลือก",
   routesAtStop: "สายรถที่กำลังให้บริการป้ายนี้", loadingRoutes: "กำลังโหลดสายรถ…", back: "‹ กลับ",
+  busesOnMap: "แสดงตำแหน่งรถที่กำลังวิ่งบนแผนที่ แตะไอคอนรถเพื่อเปิดสายรถ",
   homeTitle: "1. เลือกตำแหน่งที่ใกล้คุณที่สุดก่อน",
   homeHelp: "ใช้ตำแหน่งปัจจุบันหรือแตะตำแหน่งของคุณบนแผนที่ จากนั้นเลือกป้ายและรถโดยสาร",
   mobileTip: "คำแนะนำ Android/iPhone: แตะหรือปัดแถบด้านบนแผงนี้เพื่อซ่อน แล้วแตะแถบอีกครั้งเพื่อเปิด",
@@ -484,6 +486,57 @@ function nearbyTripsHTML(trips, stopId, live) {
     </button>`).join("");
 }
 
+function showStopBusMarkers(trips, stop) {
+  layers.buses.clearLayers();
+  Object.keys(busMarkers).forEach((key) => delete busMarkers[key]);
+  const stopId = stop.stopId ?? stop.id;
+  const candidates = [];
+  const mapPoints = stop.location?.lat && stop.location?.lon
+    ? [[stop.location.lat, stop.location.lon]] : [];
+
+  (trips || []).filter((trip) => trip.hasGps).forEach((trip) => {
+    const buses = (trip.gpsList || []).filter((bus) => {
+      const lat = Number(bus.snapped_lat) || Number(bus.lat);
+      const lon = Number(bus.snapped_lon) || Number(bus.lon);
+      return lat && lon;
+    });
+    if (!buses.length) return;
+    const nearest = stop.location?.lat && stop.location?.lon
+      ? buses.sort((a, b) => busDistanceFromStop(a, stop) - busDistanceFromStop(b, stop))[0]
+      : buses[0];
+    candidates.push({ trip, bus: nearest });
+  });
+
+  candidates
+    .sort((a, b) => stop.location?.lat && stop.location?.lon
+      ? busDistanceFromStop(a.bus, stop) - busDistanceFromStop(b.bus, stop) : 0)
+    .slice(0, 12)
+    .forEach(({ trip, bus }) => {
+      const lat = Number(bus.snapped_lat) || Number(bus.lat);
+      const lon = Number(bus.snapped_lon) || Number(bus.lon);
+      const plate = bus.id.split(" ")[0];
+      const key = `stop:${trip.tripId}:${bus.id}`;
+      const html = `<div class="bus-marker">
+        <div class="bus-emoji">🚌</div><div class="bus-label">${esc(trip.name)} · ${esc(plate)}</div></div>`;
+      busMarkers[key] = L.marker([lat, lon], {
+        icon: L.divIcon({ html, className: "", iconSize: [30, 40], iconAnchor: [15, 20] }),
+        zIndexOffset: 500,
+      }).bindTooltip(`${esc(trip.name)} · ${esc(plate)}`)
+        .on("click", () => openTrip(trip.tripId, stopId))
+        .addTo(layers.buses);
+      mapPoints.push([lat, lon]);
+    });
+
+  if (mapPoints.length > 1) {
+    const desktop = window.matchMedia("(min-width: 760px)").matches;
+    map.fitBounds(L.latLngBounds(mapPoints), {
+      paddingTopLeft: desktop ? [470, 60] : [25, 50],
+      paddingBottomRight: desktop ? [40, 40] : [25, 150],
+      maxZoom: 15,
+    });
+  }
+}
+
 async function showNearbyStop(stop) {
   if (!stop) return;
   const box = document.querySelector(`[data-stop-routes="${CSS.escape(String(stop.id))}"]`);
@@ -493,6 +546,7 @@ async function showNearbyStop(stop) {
     const trips = await api(`/api/passing/${encodeURIComponent(stop.id)}`);
     document.querySelectorAll("#guide-step-3").forEach((banner) => banner.remove());
     box.innerHTML = guideBanner(3, t("route"), t("routeHelp")) + nearbyTripsHTML(trips, stop.id, true);
+    showStopBusMarkers(trips, stop);
     setGuideStep(3, t("route"));
     revealSheetTarget(box.querySelector("#guide-step-3"));
     box.querySelectorAll("[data-trip]").forEach((button) => {
@@ -530,6 +584,7 @@ async function showStopRoutes(stop) {
       <button class="btn btn-ghost" style="width:auto;padding:8px 12px" id="btn-stop-home">${t("back")}</button>
     </div>
     ${guideBanner(3, t("route"), t("routeHelp"))}
+    <small>${t("busesOnMap")}</small>
     <div id="stop-route-list"><small>${t("loadingRoutes")}</small></div>
   `);
   $("#btn-stop-home").onclick = () => { clearTripLayers(); renderHome(); };
@@ -539,6 +594,7 @@ async function showStopRoutes(stop) {
     const trips = await api(`/api/passing/${encodeURIComponent(stopId)}`);
     if (state.view !== "stop" || state.selectedStop !== stop) return;
     list.innerHTML = nearbyTripsHTML(trips, stopId, true);
+    showStopBusMarkers(trips, stop);
     list.querySelectorAll("[data-trip]").forEach((button) => {
       button.onclick = () => openTrip(button.dataset.trip, button.dataset.stop);
     });
