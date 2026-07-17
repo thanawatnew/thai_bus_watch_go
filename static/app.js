@@ -28,6 +28,7 @@ Object.assign(I18N.en, {
   optionalRoute: "Optional: open a route by trip ID", tripPlaceholder: "Trip ID, e.g. 7179", go: "Go",
   tripHelp: "Only use this if you already know a trip ID from", recentRoutes: "Recent routes",
   recentStop: "Latest selected bus stop", reopenStop: "Show live routes ›",
+  recentLocation: "Latest selected location", reopenLocation: "Find nearby stops ›",
   civic: "Independent experimental civic-tech project. Not affiliated with or endorsed by Bangkok Metropolitan Administration. Camera content remains on the official BMA Traffic service.",
   nearestCamera: "Nearest traffic camera", upcomingCamera: "Upcoming traffic camera", fromBus: "m from bus",
   onRoute: "on route", nearRoute: "near route", cameraId: "Current camera ID", openCamera: "Open camera on BMA ↗",
@@ -62,6 +63,7 @@ Object.assign(I18N.th, {
   optionalRoute: "ตัวเลือกเพิ่มเติม: เปิดเส้นทางด้วยรหัสเที่ยวรถ", tripPlaceholder: "รหัสเที่ยวรถ เช่น 7179", go: "ไป",
   tripHelp: "ใช้ตัวเลือกนี้เมื่อคุณทราบรหัสเที่ยวรถจาก", recentRoutes: "เส้นทางล่าสุด",
   recentStop: "ป้ายรถโดยสารที่เลือกล่าสุด", reopenStop: "ดูสายรถที่ให้บริการ ›",
+  recentLocation: "ตำแหน่งที่เลือกล่าสุด", reopenLocation: "ค้นหาป้ายใกล้เคียง ›",
   civic: "โครงการทดลองเทคโนโลยีเพื่อสังคมอิสระ ไม่ได้เป็นส่วนหนึ่งหรือได้รับการรับรองจากกรุงเทพมหานคร เนื้อหากล้องยังคงอยู่บนบริการ BMA Traffic อย่างเป็นทางการ",
   nearestCamera: "กล้องจราจรที่ใกล้ที่สุด", upcomingCamera: "กล้องจราจรข้างหน้า", fromBus: "ม. จากรถ",
   onRoute: "อยู่บนเส้นทาง", nearRoute: "อยู่ใกล้เส้นทาง", cameraId: "รหัสกล้องปัจจุบัน", openCamera: "เปิดกล้องบน BMA ↗",
@@ -189,6 +191,14 @@ function getLastStopSelection() {
   try { return JSON.parse(localStorage.getItem("lastStopSelection") || "null"); } catch { return null; }
 }
 
+function getLastLocationSelection() {
+  try { return JSON.parse(localStorage.getItem("lastLocationSelection") || "null"); } catch { return null; }
+}
+
+function rememberLocationSelection(pos) {
+  localStorage.setItem("lastLocationSelection", JSON.stringify({ lat: Number(pos[0]), lon: Number(pos[1]) }));
+}
+
 function rememberStopSelection(stop, tripId = state.tripId) {
   localStorage.setItem("lastStopSelection", JSON.stringify({
     tripId,
@@ -220,6 +230,7 @@ async function reopenLastStop(button) {
 async function clearAppCache() {
   localStorage.removeItem("recents");
   localStorage.removeItem("lastStopSelection");
+  localStorage.removeItem("lastLocationSelection");
   localStorage.removeItem("bmaCameraNoticeSeen");
   localStorage.removeItem(BMA_PREFLIGHT_KEY);
   if ("caches" in window) {
@@ -327,6 +338,7 @@ function renderHome() {
   stopRefresh();
   const recents = getRecents();
   const recentStop = getLastStopSelection();
+  const recentLocation = getLastLocationSelection();
   setSheet(`
     ${guideBanner(1, t("location"), t("locationHelp"))}
     ${telegramSetupHTML()}
@@ -338,6 +350,10 @@ function renderHome() {
     </div>
     <button class="btn" id="btn-near">${t("findStops")}</button>
     <div class="map-pick-hint">${t("mapTapHint")}</div>
+    ${Number.isFinite(recentLocation?.lat) && Number.isFinite(recentLocation?.lon) ? `<div class="stop-card latest-location-card">
+      <small>${t("recentLocation")}</small>
+      <button class="stop-name" id="btn-recent-location">📍 ${recentLocation.lat.toFixed(5)}, ${recentLocation.lon.toFixed(5)} <span>${t("reopenLocation")}</span></button>
+    </div>` : ""}
     ${recentStop?.stopId ? `<div class="stop-card latest-stop-card">
       <small>${t("recentStop")}</small>
       <button class="stop-name" id="btn-recent-stop">🚏 ${esc(recentStop.stopName || `Stop ${recentStop.stopId}`)} <span>${t("reopenStop")}</span></button>
@@ -360,6 +376,7 @@ function renderHome() {
   `);
 
   $("#btn-near").onclick = loadNearby;
+  $("#btn-recent-location")?.addEventListener("click", () => loadNearbyAt([recentLocation.lat, recentLocation.lon]));
   $("#btn-recent-stop")?.addEventListener("click", (event) => reopenLastStop(event.currentTarget));
   $("#btn-clear-cache").onclick = clearAppCache;
   $("#btn-open-trip").onclick = () => {
@@ -393,6 +410,7 @@ async function loadNearby() {
 async function loadNearbyAt(pos, showUserPin = false) {
   const out = $("#nearby-out");
   if (!out || state.view !== "home") return;
+  rememberLocationSelection(pos);
   if (showUserPin) showMe(pos);
   else {
     layers.me.clearLayers();
