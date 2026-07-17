@@ -27,6 +27,7 @@ Object.assign(I18N.en, {
   findStops: "📍 Find nearest bus stops", clearSaved: "🧹 Clear saved data & cache",
   optionalRoute: "Optional: open a route by trip ID", tripPlaceholder: "Trip ID, e.g. 7179", go: "Go",
   tripHelp: "Only use this if you already know a trip ID from", recentRoutes: "Recent routes",
+  recentStop: "Latest selected bus stop", reopenStop: "Show live routes ›",
   civic: "Independent experimental civic-tech project. Not affiliated with or endorsed by Bangkok Metropolitan Administration. Camera content remains on the official BMA Traffic service.",
   nearestCamera: "Nearest traffic camera", upcomingCamera: "Upcoming traffic camera", fromBus: "m from bus",
   onRoute: "on route", nearRoute: "near route", cameraId: "Current camera ID", openCamera: "Open camera on BMA ↗",
@@ -60,6 +61,7 @@ Object.assign(I18N.th, {
   findStops: "📍 ค้นหาป้ายรถโดยสารใกล้เคียง", clearSaved: "🧹 ล้างข้อมูลที่บันทึกและแคช",
   optionalRoute: "ตัวเลือกเพิ่มเติม: เปิดเส้นทางด้วยรหัสเที่ยวรถ", tripPlaceholder: "รหัสเที่ยวรถ เช่น 7179", go: "ไป",
   tripHelp: "ใช้ตัวเลือกนี้เมื่อคุณทราบรหัสเที่ยวรถจาก", recentRoutes: "เส้นทางล่าสุด",
+  recentStop: "ป้ายรถโดยสารที่เลือกล่าสุด", reopenStop: "ดูสายรถที่ให้บริการ ›",
   civic: "โครงการทดลองเทคโนโลยีเพื่อสังคมอิสระ ไม่ได้เป็นส่วนหนึ่งหรือได้รับการรับรองจากกรุงเทพมหานคร เนื้อหากล้องยังคงอยู่บนบริการ BMA Traffic อย่างเป็นทางการ",
   nearestCamera: "กล้องจราจรที่ใกล้ที่สุด", upcomingCamera: "กล้องจราจรข้างหน้า", fromBus: "ม. จากรถ",
   onRoute: "อยู่บนเส้นทาง", nearRoute: "อยู่ใกล้เส้นทาง", cameraId: "รหัสกล้องปัจจุบัน", openCamera: "เปิดกล้องบน BMA ↗",
@@ -187,8 +189,32 @@ function getLastStopSelection() {
   try { return JSON.parse(localStorage.getItem("lastStopSelection") || "null"); } catch { return null; }
 }
 
-function rememberStopSelection(stop) {
-  localStorage.setItem("lastStopSelection", JSON.stringify({ tripId: state.tripId, stopId: stop.stopId }));
+function rememberStopSelection(stop, tripId = state.tripId) {
+  localStorage.setItem("lastStopSelection", JSON.stringify({
+    tripId,
+    stopId: stop.stopId ?? stop.id,
+    stopName: stop.stopName ?? stop.name,
+    location: stop.location,
+  }));
+}
+
+async function reopenLastStop(button) {
+  const remembered = getLastStopSelection();
+  if (!remembered?.stopId) return;
+  button.disabled = true;
+  try {
+    let stop = remembered;
+    if (!stop.stopName || !stop.location) {
+      const trip = await api(`/api/trip/${encodeURIComponent(remembered.tripId)}`);
+      stop = (trip.stopList || []).find((candidate) => String(candidate.stopId) === String(remembered.stopId));
+      if (!stop) throw new Error("The previously selected stop is no longer available.");
+      rememberStopSelection(stop, remembered.tripId);
+    }
+    showStopRoutes(stop);
+  } catch (e) {
+    button.disabled = false;
+    toast(e.message);
+  }
 }
 
 async function clearAppCache() {
@@ -300,6 +326,7 @@ function renderHome() {
   state.view = "home";
   stopRefresh();
   const recents = getRecents();
+  const recentStop = getLastStopSelection();
   setSheet(`
     ${guideBanner(1, t("location"), t("locationHelp"))}
     ${telegramSetupHTML()}
@@ -311,6 +338,10 @@ function renderHome() {
     </div>
     <button class="btn" id="btn-near">${t("findStops")}</button>
     <div class="map-pick-hint">${t("mapTapHint")}</div>
+    ${recentStop?.stopId ? `<div class="stop-card latest-stop-card">
+      <small>${t("recentStop")}</small>
+      <button class="stop-name" id="btn-recent-stop">🚏 ${esc(recentStop.stopName || `Stop ${recentStop.stopId}`)} <span>${t("reopenStop")}</span></button>
+    </div>` : ""}
     <details class="optional-route">
       <summary>${t("optionalRoute")}</summary>
       <div class="input-row">
@@ -329,6 +360,7 @@ function renderHome() {
   `);
 
   $("#btn-near").onclick = loadNearby;
+  $("#btn-recent-stop")?.addEventListener("click", (event) => reopenLastStop(event.currentTarget));
   $("#btn-clear-cache").onclick = clearAppCache;
   $("#btn-open-trip").onclick = () => {
     const v = $("#trip-input").value.trim();
