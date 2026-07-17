@@ -19,6 +19,7 @@ Object.assign(I18N.en, {
   noLiveTrip: "No live buses on this trip.", loadingArrival: "Loading arrival estimate…",
   showArrivals: "Show arrivals ›", selectStopBuses: "Select this bus stop to see buses.",
   backToStop: "‹ Back to selected stop",
+  routesAtStop: "Live routes serving this stop", loadingRoutes: "Loading live routes…", back: "‹ Back",
   homeTitle: "1. Select your nearest location first",
   homeHelp: "Use your location or tap your position on the map. Then choose a bus stop and bus.",
   mobileTip: "Android/iPhone tip: tap or swipe the bar above this panel to hide it, then tap the bar again to reopen it.",
@@ -51,6 +52,7 @@ Object.assign(I18N.th, {
   noLiveTrip: "ไม่มีรถที่กำลังวิ่งในเที่ยวนี้", loadingArrival: "กำลังโหลดเวลาถึงโดยประมาณ…",
   showArrivals: "ดูรถที่จะมาถึง ›", selectStopBuses: "เลือกป้ายนี้เพื่อดูรถโดยสาร",
   backToStop: "‹ กลับไปยังป้ายที่เลือก",
+  routesAtStop: "สายรถที่กำลังให้บริการป้ายนี้", loadingRoutes: "กำลังโหลดสายรถ…", back: "‹ กลับ",
   homeTitle: "1. เลือกตำแหน่งที่ใกล้คุณที่สุดก่อน",
   homeHelp: "ใช้ตำแหน่งปัจจุบันหรือแตะตำแหน่งของคุณบนแผนที่ จากนั้นเลือกป้ายและรถโดยสาร",
   mobileTip: "คำแนะนำ Android/iPhone: แตะหรือปัดแถบด้านบนแผงนี้เพื่อซ่อน แล้วแตะแถบอีกครั้งเพื่อเปิด",
@@ -81,7 +83,7 @@ function applyLanguage() {
 }
 
 const state = {
-  view: "home",          // home | trip | alert-pick
+  view: "home",          // home | stop | trip | alert-pick
   tripId: null,
   trip: null,
   selectedBus: null,     // bus id string
@@ -451,6 +453,50 @@ async function showNearbyStop(stop) {
   }
 }
 
+async function showStopRoutes(stop) {
+  if (!stop) return;
+  const stopId = stop.stopId ?? stop.id;
+  const stopName = stop.stopName ?? stop.name ?? "Selected stop";
+  if (stopId == null) return;
+
+  clearTripLayers();
+  state.view = "stop";
+  state.selectedStop = stop;
+  state.selectedBus = null;
+  state.visibleBusIds = null;
+  setGuideStep(3, t("route"));
+
+  if (stop.location?.lat && stop.location?.lon) {
+    L.circleMarker([stop.location.lat, stop.location.lon], {
+      radius: 8, color: "#fff", weight: 2, fillColor: "#e8b25a", fillOpacity: 1,
+    }).bindTooltip(esc(stopName)).addTo(layers.stops);
+    map.setView([stop.location.lat, stop.location.lon], Math.max(map.getZoom(), 16));
+  }
+
+  setSheet(`
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="font-size:24px">🚏</div>
+      <div style="flex:1;min-width:0"><b>${esc(stopName)}</b><br><small>${t("routesAtStop")}</small></div>
+      <button class="btn btn-ghost" style="width:auto;padding:8px 12px" id="btn-stop-home">${t("back")}</button>
+    </div>
+    ${guideBanner(3, t("route"), t("routeHelp"))}
+    <div id="stop-route-list"><small>${t("loadingRoutes")}</small></div>
+  `);
+  $("#btn-stop-home").onclick = () => { clearTripLayers(); renderHome(); };
+
+  const list = $("#stop-route-list");
+  try {
+    const trips = await api(`/api/passing/${encodeURIComponent(stopId)}`);
+    if (state.view !== "stop" || state.selectedStop !== stop) return;
+    list.innerHTML = nearbyTripsHTML(trips, stopId, true);
+    list.querySelectorAll("[data-trip]").forEach((button) => {
+      button.onclick = () => openTrip(button.dataset.trip, button.dataset.stop);
+    });
+  } catch (e) {
+    list.innerHTML = `<small>⚠️ ${esc(e.message)}</small>`;
+  }
+}
+
 map.on("click", (e) => {
   if (state.view === "home") loadNearbyAt([e.latlng.lat, e.latlng.lng]);
 });
@@ -674,7 +720,7 @@ function renderAllBuses(returnStop) {
     </div>
     <div id="bus-detail"></div>
   `);
-  $("#btn-return-stop").onclick = () => selectStop(returnStop);
+  $("#btn-return-stop").onclick = () => showStopRoutes(returnStop);
   bindBusRows();
   revealSheetTarget("#guide-step-4");
 }
@@ -880,7 +926,7 @@ async function selectBus(busId, options = {}) {
   if (options.userAction) revealSheetTarget("#guide-step-5");
   $("#btn-view-camera")?.addEventListener("click", () => revealSheetTarget("#camera-section", 0));
   $("#btn-alert")?.addEventListener("click", startAlertFlow);
-  $("#btn-back-stop")?.addEventListener("click", () => selectStop(state.selectedStop));
+  $("#btn-back-stop")?.addEventListener("click", () => showStopRoutes(state.selectedStop));
   detail.querySelectorAll("[data-switch-bus]").forEach((button) => {
     button.onclick = () => selectBus(button.dataset.switchBus, { userAction: true });
   });
