@@ -3,7 +3,7 @@
 
 const BANGKOK = [13.7563, 100.5018];
 const REFRESH_MS = 5000;
-const APP_VERSION = "0.5.9";
+const APP_VERSION = "0.6.0";
 const BMA_PREFLIGHT_KEY = "bmaCameraPreflightV1";
 const I18N = {
   en: { step:"Step", open:"Open", hide:"Hide", location:"Choose a location", locationHelp:"Use your location or tap your position on the map.", stop:"Choose a nearby stop", stopHelp:"Tap a stop to see its live routes and arrivals.", route:"Choose a bus route", routeHelp:"Tap the route you want to follow.", routeStop:"Choose a route stop", routeStopHelp:"Tap the stop where you want to meet the bus.", bus:"Choose a live bus", busHelp:"Tap a bus below to open its live details.", view:"View bus and camera", viewHelp:"Review the live bus details, then open the available traffic camera.", reset:"Start over from Step 1 and run the BMA camera test again? Your recent routes will be kept.", preflightTitle:"Test BMA camera access", iphoneTitle:"iPhone users: Firefox is recommended.", iphoneText:"Safari may not open BMA Traffic's external HTTP-only camera page reliably. Open Bus-287 in Firefox before running this test.", preflightIntro:"BMA Traffic is a separate, HTTP-only website. Its availability and content are controlled by BMA Traffic, not Bus-287.", preflightStep1:"1. Open the test: tap the blue BMA camera button below.", preflightStep2:"2. Allow the external page only if you accept opening BMA's HTTP website.", preflightStep3:"3. Check whether the BMA camera content appears.", preflightStep4:"4. Return to this Bus-287 browser tab.", preflightStep5:"5. Report Yes or No below to enter Bus Watch.", openBmaTest:"🎥 Open BMA camera test ↗", bmaWorkedQuestion:"Did the BMA camera page open correctly?", bmaYes:"Yes, camera worked — continue", bmaNo:"No — continue with bus tracking only", preflightDisclaimer:"By continuing, you understand that external camera access may be insecure, unavailable, or behave differently in each browser." },
@@ -210,10 +210,10 @@ function rememberStopSelection(stop, tripId = state.tripId) {
   }));
 }
 
-async function reopenLastStop(button) {
+async function reopenLastStop(button = null) {
   const remembered = getLastStopSelection();
-  if (!remembered?.stopId) return;
-  button.disabled = true;
+  if (!remembered?.stopId) return false;
+  if (button) button.disabled = true;
   try {
     let stop = remembered;
     if (!stop.stopName || !stop.location) {
@@ -223,9 +223,12 @@ async function reopenLastStop(button) {
       rememberStopSelection(stop, remembered.tripId);
     }
     showStopRoutes(stop);
+    return true;
   } catch (e) {
-    button.disabled = false;
+    if (button) button.disabled = false;
+    else renderHome();
     toast(e.message);
+    return false;
   }
 }
 
@@ -1405,7 +1408,7 @@ async function init() {
   // even after the status pill has updated.
   await refreshTelegram();
   const remembered = getLastStopSelection();
-  if (remembered?.tripId && remembered?.stopId) await openTrip(remembered.tripId, remembered.stopId);
+  if (remembered?.stopId) await reopenLastStop();
   else renderHome();
   refreshWatches();
   setInterval(refreshTelegram, 20000);
