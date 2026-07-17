@@ -346,7 +346,6 @@ input[type=text]:focus { border-color: #2f6fed; }
 .optional-route { margin: 15px 0 8px; }
 .optional-route summary { color: #aab2bb; cursor: pointer; font-size: 13px; }
 .optional-route .input-row { margin-top: 9px; }
-.app-version { display: block; margin-top: 12px; text-align: center; color: #77818b; }
 .civic-tech-label {
   margin-top: 14px; padding: 10px 11px; border: 1px solid rgba(255,255,255,.1);
   border-radius: 10px; color: #9da7b1; font-size: 11px; line-height: 1.45;
