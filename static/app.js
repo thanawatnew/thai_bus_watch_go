@@ -522,7 +522,7 @@ function showStopBusMarkers(trips, stop) {
         icon: L.divIcon({ html, className: "", iconSize: [30, 40], iconAnchor: [15, 20] }),
         zIndexOffset: 500,
       }).bindTooltip(`${esc(trip.name)} · ${esc(plate)}`)
-        .on("click", () => openTrip(trip.tripId, stopId))
+        .on("click", () => openTrip(trip.tripId, stopId, bus.id))
         .addTo(layers.buses);
       mapPoints.push([lat, lon]);
     });
@@ -608,7 +608,7 @@ map.on("click", (e) => {
 });
 
 /* ---------- trip view ---------- */
-async function openTrip(tripId, preferredStopId = null) {
+async function openTrip(tripId, preferredStopId = null, preferredBusId = null) {
   state.view = "trip";
   state.tripId = String(tripId);
   state.selectedBus = null;
@@ -628,6 +628,9 @@ async function openTrip(tripId, preferredStopId = null) {
       : null;
     if (preferredStop) selectStop(preferredStop);
     else renderTripSheet();
+    if (preferredBusId && (trip.gpsList || []).some((bus) => bus.id === preferredBusId)) {
+      await selectBus(preferredBusId, { userAction: true });
+    }
     startRefresh();
   } catch (e) {
     setSheet(`<h2>⚠️ ${esc(e.message)}</h2><button class="btn btn-ghost" onclick="renderHome()">Back</button>`);
