@@ -178,3 +178,34 @@ func GetCameraFrameForRequest(ctx context.Context, cameraID string) ([]byte, err
 	}
 	return frame, nil
 }
+
+// CheckCameraRelay reports whether the configured camera-only relay is
+// reachable. Camera availability is deliberately separate from the main app
+// health so bus tracking remains usable when the relay is offline.
+func CheckCameraRelay(ctx context.Context) error {
+	relayBase := strings.TrimRight(strings.TrimSpace(os.Getenv("BMA_CAMERA_RELAY_URL")), "/")
+	if relayBase == "" {
+		return nil
+	}
+	relayURL, err := url.Parse(relayBase)
+	if err != nil || relayURL.Scheme != "https" || relayURL.Host == "" {
+		return fmt.Errorf("invalid BMA_CAMERA_RELAY_URL")
+	}
+	relayURL.Path = strings.TrimRight(relayURL.Path, "/") + "/healthz"
+	relayURL.RawQuery = ""
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, relayURL.String(), nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("User-Agent", "BUS287-Oracle/1.0")
+	resp, err := bmaRelayClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("camera relay: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("camera relay health HTTP %d", resp.StatusCode)
+	}
+	return nil
+}

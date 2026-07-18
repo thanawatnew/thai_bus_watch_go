@@ -44,6 +44,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/access/status", s.access.status)
 	mux.HandleFunc("POST /api/access/enter", s.access.enter)
 
+	mux.HandleFunc("GET /api/camera/healthz", s.handleCameraHealth)
 	mux.HandleFunc("GET /api/camera/{id}/frame", s.handleCameraFrame)
 	mux.HandleFunc("POST /api/telegram/webhook", s.handleTelegramWebhook)
 	mux.HandleFunc("GET /api/trip/{id}", s.handleTrip)
@@ -211,9 +212,19 @@ func (s *Server) handleTelegramStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.tg.Status())
 }
 
-// handleCameraFrame proxies a live JPEG frame from bmatraffic.com so the
-// HTTPS web app can show camera video (the source site is HTTP-only and
-// session-bound, which iPhones refuse to load directly).
+func (s *Server) handleCameraHealth(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
+	defer cancel()
+	w.Header().Set("Cache-Control", "no-store")
+	if err := CheckCameraRelay(ctx); err != nil {
+		writeErr(w, http.StatusServiceUnavailable, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleCameraFrame validates a live JPEG frame without embedding the feed in
+// BUS287. The user opens the verified camera on BMA Traffic itself.
 func (s *Server) handleCameraFrame(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 12*time.Second)
 	defer cancel()

@@ -119,3 +119,23 @@ func TestCameraFrameRequestRejectsInsecureRelay(t *testing.T) {
 		t.Fatal("insecure relay URL was accepted")
 	}
 }
+
+func TestCameraRelayHealth(t *testing.T) {
+	previousClient := bmaRelayClient
+	bmaRelayClient = &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		if request.URL.Path != "/healthz" {
+			t.Fatalf("relay health path = %q", request.URL.Path)
+		}
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader("ok")),
+			Header:     make(http.Header),
+		}, nil
+	})}
+	t.Cleanup(func() { bmaRelayClient = previousClient })
+	t.Setenv("BMA_CAMERA_RELAY_URL", "https://camera-relay.example")
+
+	if err := CheckCameraRelay(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+}

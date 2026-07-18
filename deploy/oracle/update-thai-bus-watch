@@ -3,7 +3,7 @@ set -eu
 
 repo=/opt/thai_bus_watch_go
 domain="${DOMAIN:-287287287.xyz}"
-camera_relay_url="${BMA_CAMERA_RELAY_URL:-https://thanawat-ms7c37-kubuntu.tailec6f8a.ts.net}"
+camera_relay_url="${BMA_CAMERA_RELAY_URL:-https://raspberrypi.tailec6f8a.ts.net:8443}"
 
 if [ ! -d "$repo/.git" ]; then
   git clone --branch main https://github.com/thanawatnew/thai_bus_watch_go.git "$repo"
