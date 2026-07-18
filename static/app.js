@@ -3,7 +3,7 @@
 
 const BANGKOK = [13.7563, 100.5018];
 const REFRESH_MS = 5000;
-const APP_VERSION = "0.6.5";
+const APP_VERSION = "0.6.6";
 const BMA_PREFLIGHT_KEY = "bmaCameraPreflightV3";
 const PREFLIGHT_CAMERA_IDS = ["1443", "603", "1456", "1286", "1258"];
 const I18N = {
@@ -50,8 +50,9 @@ Object.assign(I18N.en, {
   nearestCamera: "Nearest traffic camera", upcomingCamera: "Upcoming traffic camera", fromBus: "m from bus",
   onRoute: "on route", nearRoute: "near route", cameraId: "Current camera ID", openCamera: "Open verified camera on BMA ↗",
   previousCamera: "‹ Previous camera", nextCamera: "Next camera ›", showPins: "🗺️ Show bus + camera pins",
-  cameraAvailable: "🎥 Traffic camera available", cameraAvailableHelp: "Tap to view the nearest camera for this bus ↓",
-  cameraNote: "BUS287 validates the preview first. The button opens this same camera in a BMA Traffic popup.",
+  cameraAvailable: "🎥 Traffic camera available", cameraAvailableHelp: "Tap to verify it and open it on BMA Traffic ↓",
+  cameraNote: "BUS287 checks camera availability in the background. No live camera image is embedded in BUS287; the button opens BMA Traffic externally.",
+  cameraReadyExternal: "Camera verified in the background. Open it on BMA Traffic.",
   liveCameraStatus: "Live BMA camera · bus tracking stays independent",
   cameraSourceUnavailable: "The BMA camera is slow or unavailable; bus tracking is still live.",
   switchingCamera: "That camera is unavailable. Trying the next route camera…",
@@ -103,8 +104,9 @@ Object.assign(I18N.th, {
   nearestCamera: "กล้องจราจรที่ใกล้ที่สุด", upcomingCamera: "กล้องจราจรข้างหน้า", fromBus: "ม. จากรถ",
   onRoute: "อยู่บนเส้นทาง", nearRoute: "อยู่ใกล้เส้นทาง", cameraId: "รหัสกล้องปัจจุบัน", openCamera: "เปิดกล้องที่ตรวจสอบแล้วบน BMA ↗",
   previousCamera: "‹ กล้องก่อนหน้า", nextCamera: "กล้องถัดไป ›", showPins: "🗺️ แสดงตำแหน่งรถและกล้อง",
-  cameraAvailable: "🎥 มีกล้องจราจร", cameraAvailableHelp: "แตะเพื่อดูกล้องที่ใกล้รถคันนี้ที่สุด ↓",
-  cameraNote: "BUS287 ตรวจสอบภาพตัวอย่างก่อน ปุ่มจะเปิดกล้องตัวเดียวกันนี้ในป๊อปอัปของ BMA Traffic",
+  cameraAvailable: "🎥 มีกล้องจราจร", cameraAvailableHelp: "แตะเพื่อตรวจสอบและเปิดบน BMA Traffic ↓",
+  cameraNote: "BUS287 ตรวจสอบว่ากล้องใช้งานได้อยู่เบื้องหลัง โดยไม่ฝังภาพสดใน BUS287 ปุ่มจะเปิดกล้องบน BMA Traffic ภายนอก",
+  cameraReadyExternal: "ตรวจสอบกล้องเบื้องหลังแล้ว เปิดดูได้บน BMA Traffic",
   liveCameraStatus: "กล้อง BMA สด · การติดตามรถยังทำงานแยกกัน",
   cameraSourceUnavailable: "กล้อง BMA ตอบสนองช้าหรือไม่พร้อมใช้งาน แต่การติดตามรถยังทำงานอยู่",
   switchingCamera: "กล้องนี้ไม่พร้อมใช้งาน กำลังลองกล้องถัดไปบนเส้นทาง…",
@@ -119,13 +121,25 @@ Object.assign(I18N.th, {
 let currentLang = (() => { try { return localStorage.getItem("buswatchLanguage") || "th"; } catch { return "th"; } })();
 const t = (key) => I18N[currentLang]?.[key] || I18N.en[key] || key;
 const cameraFrameURL = (cameraId) => `/api/camera/${encodeURIComponent(cameraId)}/frame?t=${Date.now()}`;
+async function cameraFrameAvailable(cameraId, timeoutMs = 14000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(cameraFrameURL(cameraId), { cache: "no-store", signal: controller.signal });
+    if (!response.ok || !String(response.headers.get("content-type") || "").toLowerCase().startsWith("image/")) return false;
+    const frame = await response.blob();
+    return frame.size >= 1000;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 function applyLanguage() {
   document.documentElement.lang = currentLang;
   $("#language-select").value = currentLang;
   $("#topbar-version").textContent = `v${APP_VERSION}`;
   document.querySelectorAll("[data-i18n]").forEach((element) => { element.textContent = t(element.dataset.i18n); });
-  const preflightImage = $("#preflight-camera-image");
-  if (preflightImage) preflightImage.alt = t("preflightCameraAlt");
   const directCamera = $("#btn-open-camera-id");
   if (directCamera?.dataset.cameraId) directCamera.textContent = `${t("openCameraId")} ${directCamera.dataset.cameraId} ↗`;
   document.querySelectorAll("[data-language-option]").forEach((button) => {
@@ -830,7 +844,6 @@ function selectStop(stop) {
   state.selectedBus = null;
   state.busMotion = {};
   updateBusMotion(state.trip);
-  stopCamViewer();
   layers.camera.clearLayers();
   const buses = [...(state.trip?.gpsList || [])].sort((a, b) =>
     busDistanceFromStop(a, stop) - busDistanceFromStop(b, stop)).slice(0, 2);
@@ -1031,12 +1044,9 @@ async function selectBus(busId, options = {}) {
           <b>${esc(d.nearestCamera.name_th || d.nearestCamera.name_en || d.nearestCamera.id)}</b>
           <small>${t("cameraId")}: ${esc(d.nearestCamera.id)}</small>
         </div>
-        <div class="cam-box">
-          <img id="cam-img" data-camera-id="${esc(camId)}" alt="${esc(d.nearestCamera.name_th || d.nearestCamera.name_en || d.nearestCamera.id)}">
-        </div>
         <small class="cam-status" id="cam-status">${t("cameraChecking")}</small>
         <a id="camera-link" class="btn btn-ghost btn-direct-camera"
-          href="${esc(d.nearestCamera.feed_url)}" target="_blank" rel="noopener">${t("openCamera")}</a>
+          data-href="${esc(d.nearestCamera.feed_url)}" aria-disabled="true" target="_blank" rel="noopener">${t("openCamera")}</a>
         <div class="camera-site-note">ℹ️ ${t("cameraNote")}</div>
         <div class="btn-row camera-nav">
           <button class="btn btn-ghost" id="btn-prev-camera" ${state.cameraIndexOffset <= 0 ? "disabled" : ""}>${t("previousCamera")}</button>
@@ -1128,81 +1138,36 @@ async function selectBus(busId, options = {}) {
   });
   if (busCameraBounds && window.matchMedia("(min-width: 760px)").matches) showPins();
   if ((changedBus || options.userAction) && camId) {
-    const cameraImage = document.getElementById("cam-img");
-    if (cameraImage) cameraImage.dataset.scrollBottom = "true";
     requestAnimationFrame(() => {
       sheetContent.scrollTo({ top: sheetContent.scrollHeight, behavior: "smooth" });
     });
   }
-  if (camId && document.getElementById("cam-img")) {
-    startCamViewer(camId, () => {
-      if (state.cameraIndexOffset >= cameraCandidateCount - 1) return;
-      state.cameraIndexOffset++;
-      state.activeCameraId = null;
-      toast(t("switchingCamera"));
-      selectBus(busId);
+  if (camId) {
+    const checkedCameraId = String(camId);
+    cameraFrameAvailable(checkedCameraId).then((available) => {
+      if (state.selectedBus !== busId) return;
+      const cameraSection = document.getElementById("camera-section");
+      if (!cameraSection || cameraSection.dataset.cameraId !== checkedCameraId) return;
+      const cameraLink = document.getElementById("camera-link");
+      const cameraStatus = document.getElementById("cam-status");
+      if (available) {
+        if (cameraLink) {
+          cameraLink.href = cameraLink.dataset.href;
+          cameraLink.setAttribute("aria-disabled", "false");
+        }
+        if (cameraStatus) cameraStatus.textContent = t("cameraReadyExternal");
+        return;
+      }
+      if (state.cameraIndexOffset < cameraCandidateCount - 1) {
+        state.cameraIndexOffset++;
+        state.activeCameraId = null;
+        toast(t("switchingCamera"));
+        selectBus(busId);
+        return;
+      }
+      if (cameraStatus) cameraStatus.textContent = t("cameraSourceUnavailable");
     });
   }
-}
-
-/* ---------- live camera viewer ---------- */
-let camTimer = null;
-let camGeneration = 0;
-let camLoading = false;
-
-function startCamViewer(camId, onUnavailable) {
-  stopCamViewer();
-  const generation = ++camGeneration;
-  let consecutiveFailures = 0;
-  let switched = false;
-  const current = document.getElementById("cam-img");
-  if (current) current.dataset.cameraId = camId;
-  const load = () => {
-    const el = document.getElementById("cam-img");
-    if (!el || generation !== camGeneration || el.dataset.cameraId !== camId) return;
-    if (document.hidden || camLoading) return;
-    camLoading = true;
-    const next = new Image();
-    next.onload = () => {
-      camLoading = false;
-      consecutiveFailures = 0;
-      if (generation !== camGeneration || el.dataset.cameraId !== camId) return;
-      el.src = next.src;
-      el.classList.remove("cam-err");
-      const status = document.getElementById("cam-status");
-      if (status) status.textContent = t("liveCameraStatus");
-      if (el.dataset.scrollBottom === "true") {
-        el.dataset.scrollBottom = "false";
-        requestAnimationFrame(() => {
-          sheetContent.scrollTo({ top: sheetContent.scrollHeight, behavior: "smooth" });
-        });
-      }
-    };
-    next.onerror = () => {
-      camLoading = false;
-      if (generation === camGeneration && el.dataset.cameraId === camId) {
-        consecutiveFailures++;
-        el.classList.add("cam-err");
-        const status = document.getElementById("cam-status");
-        if (status) status.textContent = t("cameraSourceUnavailable");
-        if (!switched && consecutiveFailures >= 2 && onUnavailable) {
-          switched = true;
-          stopCamViewer();
-          onUnavailable();
-        }
-      }
-    };
-    next.src = cameraFrameURL(camId);
-  };
-  load();
-  camTimer = setInterval(load, 3000);
-}
-
-function stopCamViewer() {
-  camGeneration++;
-  camLoading = false;
-  if (camTimer) clearInterval(camTimer);
-  camTimer = null;
 }
 
 /* ---------- alert flow ---------- */
@@ -1367,7 +1332,6 @@ function clearTripLayers() {
   state.cameraIndexOffset = 0;
   state.visibleBusIds = null;
   state.busMotion = {};
-  stopCamViewer();
   layers.route.clearLayers();
   layers.stops.clearLayers();
   layers.buses.clearLayers();
@@ -1504,7 +1468,6 @@ function requireCameraPreflight() {
     if (sessionStorage.getItem(BMA_PREFLIGHT_KEY)) return Promise.resolve();
   } catch { /* continue with the per-session check */ }
   const overlay = $("#camera-preflight");
-  const image = $("#preflight-camera-image");
   const status = $("#preflight-camera-status");
   const retry = $("#btn-retry-camera");
   const openCamera = $("#btn-test-bma");
@@ -1514,6 +1477,7 @@ function requireCameraPreflight() {
   const failed = $("#btn-bma-failed");
   let verificationAttempt = 0;
   let verifiedCameraIndex = -1;
+  let verifiedCameraId = null;
   overlay.classList.remove("hidden");
   return new Promise((resolve) => {
     const setStatus = (key) => {
@@ -1524,6 +1488,7 @@ function requireCameraPreflight() {
       const attempt = ++verificationAttempt;
       let cameraIndex = startIndex;
       verifiedCameraIndex = -1;
+      verifiedCameraId = null;
       openCamera.removeAttribute("href");
       openCamera.setAttribute("aria-disabled", "true");
       directCamera.removeAttribute("href");
@@ -1531,56 +1496,48 @@ function requireCameraPreflight() {
       directCamera.classList.add("hidden");
       result.classList.add("hidden");
       retry.classList.add("hidden");
-      image.classList.add("hidden");
-      image.removeAttribute("src");
       setStatus("cameraChecking");
       if (cameraIndex >= PREFLIGHT_CAMERA_IDS.length) {
         setStatus("cameraCheckFailed");
         retry.classList.remove("hidden");
         return;
       }
-      const tryCamera = () => {
+      const tryCamera = async () => {
         if (attempt !== verificationAttempt) return;
         const cameraId = PREFLIGHT_CAMERA_IDS[cameraIndex];
-        const timeout = setTimeout(() => image.onerror?.(), 14000);
-        image.onload = () => {
+        const available = await cameraFrameAvailable(cameraId);
+        if (available) {
           if (attempt !== verificationAttempt) return;
-          clearTimeout(timeout);
-          image.dataset.cameraId = cameraId;
-          image.classList.remove("hidden");
           setStatus("cameraVerified");
           status.textContent = `${t("cameraVerified")} ${t("cameraId")}: ${cameraId}`;
           status.classList.add("verified");
           verifiedCameraIndex = cameraIndex;
+          verifiedCameraId = cameraId;
           openCamera.href = "http://www.bmatraffic.com/";
           openCamera.dataset.cameraId = cameraId;
           openCamera.setAttribute("aria-disabled", "false");
           directCamera.href = `http://www.bmatraffic.com/PlayVideo.aspx?ID=${encodeURIComponent(cameraId)}`;
           directCamera.dataset.cameraId = cameraId;
           directCamera.textContent = `${t("openCameraId")} ${cameraId} ↗`;
-        };
-        image.onerror = () => {
-          if (attempt !== verificationAttempt) return;
-          clearTimeout(timeout);
-          image.classList.add("hidden");
-          status.classList.remove("verified");
-          cameraIndex++;
-          if (cameraIndex < PREFLIGHT_CAMERA_IDS.length) {
-            setStatus("cameraTryingNext");
-            setTimeout(tryCamera, 250);
-            return;
-          }
-          setStatus("cameraCheckFailed");
-          retry.classList.remove("hidden");
-        };
-        image.src = cameraFrameURL(cameraId);
+          return;
+        }
+        if (attempt !== verificationAttempt) return;
+        status.classList.remove("verified");
+        cameraIndex++;
+        if (cameraIndex < PREFLIGHT_CAMERA_IDS.length) {
+          setStatus("cameraTryingNext");
+          setTimeout(tryCamera, 250);
+          return;
+        }
+        setStatus("cameraCheckFailed");
+        retry.classList.remove("hidden");
       };
       tryCamera();
     };
     const finish = () => {
       if (verifiedCameraIndex < 0) return;
       try {
-        sessionStorage.setItem(BMA_PREFLIGHT_KEY, JSON.stringify({ cameraVerified: true, cameraId: image.dataset.cameraId, checkedAt: Date.now() }));
+        sessionStorage.setItem(BMA_PREFLIGHT_KEY, JSON.stringify({ cameraVerified: true, cameraId: verifiedCameraId, checkedAt: Date.now() }));
       } catch { /* private browsing may not retain the verification */ }
       overlay.classList.add("hidden");
       resolve();

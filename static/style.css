@@ -346,10 +346,6 @@ input[type=text]:focus { border-color: #2f6fed; }
   background: #3a2b13; color: #f2cf88; font-size: 13px; font-weight: 700;
 }
 .preflight-camera-status.verified { background: #16351f; color: #8be0a0; }
-.preflight-cam-box {
-  display: grid; place-items: center; min-height: 180px; aspect-ratio: 352 / 288;
-}
-.preflight-cam-box img { width: 100%; height: 100%; max-height: 42dvh; object-fit: contain; }
 .preflight-help {
   margin-top: 12px; padding: 12px; border-radius: 12px;
   background: #24211a; border: 1px solid rgba(232,178,90,.3);
@@ -361,21 +357,9 @@ input[type=text]:focus { border-color: #2f6fed; }
 .preflight-usage h2 { margin: 0 0 8px; color: #e8eaed; font-size: 17px; }
 .preflight-usage p { margin-bottom: 0; }
 
-/* ---------- camera viewer ---------- */
-.cam-box {
-  position: relative; border-radius: 12px; overflow: hidden;
-  background: #0b0e11; border: 1px solid rgba(255,255,255,.1);
-  min-height: 120px;
-}
-.cam-box img {
-  display: block; width: 100%; height: auto; max-height: 34dvh; object-fit: contain;
-  background: #0b0e11;
-}
-.cam-box iframe {
-  display: block; width: 100%; aspect-ratio: 352 / 288; border: 0;
-  background: #0b0e11;
-}
+/* ---------- external camera access ---------- */
 .btn-direct-camera { display: block; margin-top: 7px; text-align: center; }
+.btn-direct-camera[aria-disabled="true"] { opacity: .45; pointer-events: none; }
 .onboarding-note {
   margin-bottom: 10px; padding: 11px 12px; border: 1px solid rgba(139,92,246,.55);
   border-radius: 12px; background: rgba(139,92,246,.13);
@@ -399,7 +383,6 @@ input[type=text]:focus { border-color: #2f6fed; }
 .access-count { display: block; margin-bottom: 9px; color: #aab2bb; }
 .camera-link-info b, .camera-link-info small { display: block; }
 .camera-link-info small { margin-top: 3px; color: #aab2bb; overflow-wrap: anywhere; }
-.cam-box img.cam-err { opacity: .25; }
 .cam-status { display: block; min-height: 18px; margin-top: 5px; color: #aab2bb; }
 .btn-map-pins { margin-top: 8px; }
 .camera-nav .btn { font-size: 13px; padding-left: 8px; padding-right: 8px; }
@@ -484,10 +467,8 @@ h2 small { font-weight: 400; }
     overflow: hidden;
   }
   #sheet-content { padding-bottom: 20px; }
-  .cam-box img { max-height: 42dvh; }
 }
 
 @media (max-width: 759px) and (orientation: landscape) and (max-height: 500px) {
   #sheet { max-height: 82dvh; left: 42%; border-radius: 18px 0 0 0; }
-  .cam-box img { max-height: 44dvh; }
 }
