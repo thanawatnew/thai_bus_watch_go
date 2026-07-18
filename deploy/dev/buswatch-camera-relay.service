@@ -1,0 +1,23 @@
+[Unit]
+Description=BUS287 BMA camera-only relay
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/home/thanawatnew/bin/buswatch-camera-relay -camera-relay -addr 127.0.0.1:8187
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=read-only
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_INET AF_INET6
+
+[Install]
+WantedBy=default.target

@@ -16,6 +16,7 @@ func main() {
 	tripID := flag.String("trip-id", "", "one-shot CLI mode: Namtang trip ID, example: 7179")
 	busNumber := flag.String("bus", "", "one-shot CLI mode: bus number, example: 11-9253")
 	cameraSnapshot := flag.String("write-camera-snapshot", "", "write the current BMA camera catalog to this JSON file")
+	cameraRelay := flag.Bool("camera-relay", false, "serve only validated BMA camera frames")
 	addr := flag.String("addr", "", "listen address for server mode (default :8080 or $PORT)")
 	flag.Parse()
 	if *cameraSnapshot != "" {
@@ -35,6 +36,10 @@ func main() {
 			port = "8080"
 		}
 		listen = ":" + port
+	}
+	if *cameraRelay {
+		log.Printf("BUS287 camera relay listening on %s", listen)
+		log.Fatal(http.ListenAndServe(listen, NewCameraRelayHandler()))
 	}
 
 	publicURL := os.Getenv("SELF_URL")

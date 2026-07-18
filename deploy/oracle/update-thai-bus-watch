@@ -3,6 +3,7 @@ set -eu
 
 repo=/opt/thai_bus_watch_go
 domain="${DOMAIN:-287287287.xyz}"
+camera_relay_url="${BMA_CAMERA_RELAY_URL:-https://thanawat-ms7c37-kubuntu.tailec6f8a.ts.net}"
 
 if [ ! -d "$repo/.git" ]; then
   git clone --branch main https://github.com/thanawatnew/thai_bus_watch_go.git "$repo"
@@ -28,6 +29,7 @@ docker run -d \
   --network buswatch-net \
   -e PORT=8080 \
   -e SELF_URL="https://$domain" \
+  -e BMA_CAMERA_RELAY_URL="$camera_relay_url" \
   -e TELEGRAM_BOT_TOKEN= \
   -e TELEGRAM_CHAT_ID= \
   thai-bus-watch:oracle

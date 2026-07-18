@@ -3,8 +3,9 @@
 
 const BANGKOK = [13.7563, 100.5018];
 const REFRESH_MS = 5000;
-const APP_VERSION = "0.6.3";
-const BMA_PREFLIGHT_KEY = "bmaCameraPreflightV1";
+const APP_VERSION = "0.6.4";
+const BMA_PREFLIGHT_KEY = "bmaCameraPreflightV2";
+const PREFLIGHT_CAMERA_IDS = ["1443", "603", "1456", "1286", "1258"];
 const I18N = {
   en: { step:"Step", open:"Open", hide:"Hide", location:"Choose a location", locationHelp:"Use your location or tap your position on the map.", stop:"Choose a nearby stop", stopHelp:"Tap a stop to see its live routes and arrivals.", route:"Choose a bus route", routeHelp:"Tap the route you want to follow.", routeStop:"Choose a route stop", routeStopHelp:"Tap the stop where you want to meet the bus.", bus:"Choose a live bus", busHelp:"Tap a bus below to open its live details.", view:"View bus and camera", viewHelp:"Review the live bus details, then open the available traffic camera.", reset:"Start over from Step 1 and run the BMA camera test again? Your recent routes will be kept.", preflightTitle:"Test BMA camera access", iphoneTitle:"iPhone users: Firefox is recommended.", iphoneText:"Safari may not open BMA Traffic's external HTTP-only camera page reliably. Open Bus-287 in Firefox before running this test.", preflightIntro:"BMA Traffic is a separate, HTTP-only website. Its availability and content are controlled by BMA Traffic, not Bus-287.", preflightStep1:"1. Open the test: tap the blue BMA camera button below.", preflightStep2:"2. Allow the external page only if you accept opening BMA's HTTP website.", preflightStep3:"3. Check whether the BMA camera content appears.", preflightStep4:"4. Return to this Bus-287 browser tab.", preflightStep5:"5. Report Yes or No below to enter Bus Watch.", openBmaTest:"🎥 Open BMA camera test ↗", bmaWorkedQuestion:"Did the BMA camera page open correctly?", bmaYes:"Yes, camera worked — continue", bmaNo:"No — continue with bus tracking only", preflightDisclaimer:"By continuing, you understand that external camera access may be insecure, unavailable, or behave differently in each browser." },
   th: { step:"ขั้นตอน", open:"เปิด", hide:"ซ่อน", location:"เลือกตำแหน่ง", locationHelp:"ใช้ตำแหน่งปัจจุบันหรือแตะตำแหน่งบนแผนที่", stop:"เลือกป้ายใกล้เคียง", stopHelp:"แตะป้ายเพื่อดูสายรถและเวลาถึงแบบสด", route:"เลือกสายรถโดยสาร", routeHelp:"แตะสายรถที่ต้องการติดตาม", routeStop:"เลือกป้ายในเส้นทาง", routeStopHelp:"แตะป้ายที่คุณต้องการขึ้นรถ", bus:"เลือกรถที่กำลังวิ่ง", busHelp:"แตะรถด้านล่างเพื่อดูรายละเอียดสด", view:"ดูรถและกล้อง", viewHelp:"ดูรายละเอียดรถ แล้วเปิดกล้องจราจรที่มีอยู่", reset:"เริ่มใหม่จากขั้นตอนที่ 1 และทดสอบกล้อง BMA อีกครั้งหรือไม่? รายการเส้นทางล่าสุดจะยังอยู่", preflightTitle:"ทดสอบการเข้าถึงกล้อง BMA", iphoneTitle:"ผู้ใช้ iPhone: แนะนำ Firefox", iphoneText:"Safari อาจเปิดหน้ากล้อง HTTP ของ BMA ได้ไม่สมบูรณ์ กรุณาใช้ Firefox", preflightIntro:"BMA Traffic เป็นเว็บไซต์ HTTP ภายนอก ซึ่งไม่ได้ควบคุมโดย Bus-287", preflightStep1:"1. แตะปุ่มสีน้ำเงินเพื่อเปิดหน้าทดสอบกล้อง BMA", preflightStep2:"2. อนุญาตหน้าเว็บภายนอกเมื่อคุณยอมรับการเปิดเว็บไซต์ HTTP", preflightStep3:"3. ตรวจสอบว่าภาพจากกล้อง BMA แสดงหรือไม่", preflightStep4:"4. กลับมายังแท็บ Bus-287", preflightStep5:"5. ตอบว่าใช่หรือไม่ใช่เพื่อเข้าใช้งาน", openBmaTest:"🎥 เปิดหน้าทดสอบกล้อง BMA ↗", bmaWorkedQuestion:"หน้ากล้อง BMA เปิดได้ถูกต้องหรือไม่?", bmaYes:"ใช่ กล้องใช้งานได้ — ต่อไป", bmaNo:"ไม่ — ใช้เฉพาะการติดตามรถ", preflightDisclaimer:"เมื่อดำเนินการต่อ คุณเข้าใจว่ากล้องภายนอกอาจไม่ปลอดภัยหรือไม่พร้อมใช้งาน" }
@@ -12,10 +13,16 @@ const I18N = {
 Object.assign(I18N.en, {
   projectStoryTitle: "Why Bus-287?",
   projectStoryText: "Bus-287 began with a problem: GPS data sometimes shows a route number that does not match the bus that actually arrives. It links a bus's location with nearby traffic cameras so you can check whether it has passed a camera, note what the vehicle looks like, and use the view as supporting evidence that the route number may be incorrect. Even if you do not have this problem, you can still use it to follow buses or view current travel conditions.",
-  preflightStep1: "Open the test by tapping the blue BMA camera button below.",
-  preflightStep2: "If your browser warns you, confirm that you want to open the BMA Traffic HTTP website.",
-  preflightStep3: "Check whether the BMA camera content appears.", preflightStep4: "Return to this Bus-287 browser tab.",
-  preflightStep5: "Report Yes or No below to enter Bus Watch.",
+  preflightTitle: "Verify live camera access",
+  preflightIntro: "Before you enter, BUS287 must receive a real, non-blank image from a BMA camera. This check runs inside BUS287—no popup or external page is opened.",
+  preflightStep1: "BUS287 creates or reuses a BMA camera session in the background.",
+  preflightStep2: "It reaches the camera page only when needed, then requests a fresh frame.",
+  preflightStep3: "The Continue button unlocks only after a real camera image loads.",
+  cameraChecking: "Checking for a live BMA camera image…", cameraVerified: "Live camera verified. You can enter BUS287.",
+  cameraTryingNext: "That camera is unavailable. Trying another BMA camera…",
+  cameraCheckFailed: "The camera could not be verified right now. Please retry.", retryCamera: "Retry camera check",
+  cameraVerifiedContinue: "Camera verified — enter BUS287", preflightCameraAlt: "Verified live BMA traffic camera",
+  preflightDisclaimer: "BUS287 rejects BMA's blank placeholder frames. Camera availability can still change after this check.",
   resetLabel: "↻ Reset", twoNearest: "Two nearest live buses", allBuses: "All buses",
   noGps: "No buses reporting GPS right now.", noApproaching: "No approaching bus estimate is available.",
   noLiveTrip: "No live buses on this trip.", loadingArrival: "Loading arrival estimate…",
@@ -37,7 +44,10 @@ Object.assign(I18N.en, {
   onRoute: "on route", nearRoute: "near route", cameraId: "Current camera ID", openCamera: "Open camera on BMA ↗",
   previousCamera: "‹ Previous camera", nextCamera: "Next camera ›", showPins: "🗺️ Show bus + camera pins",
   cameraAvailable: "🎥 Traffic camera available", cameraAvailableHelp: "Tap to view the nearest camera for this bus ↓",
-  cameraNote: "BMA Traffic is a separate website. On first use, you must open and allow the camera feed there yourself. If it does not start, allow the BMA page, return here, and open it again.",
+  cameraNote: "BUS287 opens or reuses the BMA camera session in the background and shows validated frames here. No popup is needed.",
+  liveCameraStatus: "Live BMA camera · bus tracking stays independent",
+  cameraSourceUnavailable: "The BMA camera is slow or unavailable; bus tracking is still live.",
+  switchingCamera: "That camera is unavailable. Trying the next route camera…",
   alertPlace: "🔔 Alert me when it reaches a place",
   bmaHelpTitle: "Camera did not open?", bmaHelpText: "Open the BMA camera page directly first, allow or start the camera feed there, then return to Bus-287 and run the test again.",
   openBmaAgain: "Open BMA camera page again ↗", continueWithoutCamera: "I understand — continue without cameras",
@@ -49,11 +59,16 @@ Object.assign(I18N.en, {
 Object.assign(I18N.th, {
   projectStoryTitle: "Bus-287 เกิดขึ้นเพื่ออะไร?",
   projectStoryText: "Bus-287 เกิดจากปัญหาที่ข้อมูล GPS บางครั้งแสดงเลขสายไม่ตรงกับรถที่วิ่งมาจริง ระบบจึงเชื่อมตำแหน่งรถกับกล้องจราจรใกล้เคียง เพื่อช่วยดูว่ารถผ่านกล้องแล้วหรือยัง สังเกตลักษณะรถ และใช้ภาพเป็นข้อมูลประกอบว่าเลขสายอาจคลาดเคลื่อนหรือไม่ แม้ไม่ได้เจอปัญหานี้ ก็เปิดดูเพื่อติดตามรถหรือดูสภาพการเดินทางได้เช่นกัน",
-  preflightDisclaimer: "โปรดทราบว่า BMA Traffic เป็นเว็บไซต์ HTTP ภายนอก กล้องอาจไม่พร้อมใช้งาน หรืออาจทำงานแตกต่างกันในแต่ละเบราว์เซอร์",
-  preflightStep1: "แตะปุ่มสีน้ำเงินเพื่อเปิดหน้าทดสอบกล้อง BMA",
-  preflightStep2: "เมื่อเบราว์เซอร์แจ้งเตือน ให้ยืนยันการเปิดเว็บไซต์ BMA Traffic (HTTP)",
-  preflightStep3: "ตรวจสอบว่าภาพจากกล้อง BMA แสดงหรือไม่", preflightStep4: "กลับมายังแท็บ Bus-287",
-  preflightStep5: "ตอบว่าใช่หรือไม่ใช่เพื่อเข้าใช้งาน",
+  preflightTitle: "ตรวจสอบว่ากล้องใช้งานได้จริง",
+  preflightIntro: "ก่อนเข้าใช้งาน BUS287 ระบบต้องโหลดภาพจริงที่ไม่ใช่ภาพว่างจากกล้อง BMA ให้สำเร็จ การตรวจสอบเกิดขึ้นภายใน BUS287 โดยไม่เปิดป๊อปอัปหรือพาออกไปเว็บไซต์อื่น",
+  preflightStep1: "BUS287 สร้างหรือใช้เซสชันกล้อง BMA ที่ยังใช้งานได้อยู่เบื้องหลัง",
+  preflightStep2: "ระบบจะเข้าหน้ากล้องเมื่อจำเป็นเท่านั้น แล้วขอภาพล่าสุด",
+  preflightStep3: "ปุ่มเข้าใช้งานจะเปิดเมื่อโหลดภาพจากกล้องจริงสำเร็จเท่านั้น",
+  cameraChecking: "กำลังตรวจสอบภาพสดจากกล้อง BMA…", cameraVerified: "ตรวจสอบกล้องสดสำเร็จ เข้าใช้งาน BUS287 ได้แล้ว",
+  cameraTryingNext: "กล้องนี้ไม่พร้อมใช้งาน กำลังลองกล้อง BMA ตัวอื่น…",
+  cameraCheckFailed: "ขณะนี้ยังตรวจสอบกล้องไม่ได้ กรุณาลองอีกครั้ง", retryCamera: "ลองตรวจสอบกล้องอีกครั้ง",
+  cameraVerifiedContinue: "ตรวจสอบกล้องแล้ว — เข้าใช้ BUS287", preflightCameraAlt: "ภาพสดที่ตรวจสอบแล้วจากกล้องจราจร BMA",
+  preflightDisclaimer: "BUS287 จะไม่ยอมรับภาพว่างจาก BMA แต่กล้องอาจหยุดให้บริการภายหลังการตรวจสอบได้",
   resetLabel: "↻ รีเซ็ต", twoNearest: "รถที่กำลังวิ่งใกล้ที่สุด 2 คัน", allBuses: "รถทั้งหมด",
   noGps: "ขณะนี้ไม่มีรถส่งข้อมูล GPS", noApproaching: "ไม่มีข้อมูลประมาณเวลาของรถที่กำลังเข้าใกล้",
   noLiveTrip: "ไม่มีรถที่กำลังวิ่งในเที่ยวนี้", loadingArrival: "กำลังโหลดเวลาถึงโดยประมาณ…",
@@ -75,7 +90,10 @@ Object.assign(I18N.th, {
   onRoute: "อยู่บนเส้นทาง", nearRoute: "อยู่ใกล้เส้นทาง", cameraId: "รหัสกล้องปัจจุบัน", openCamera: "เปิดกล้องบน BMA ↗",
   previousCamera: "‹ กล้องก่อนหน้า", nextCamera: "กล้องถัดไป ›", showPins: "🗺️ แสดงตำแหน่งรถและกล้อง",
   cameraAvailable: "🎥 มีกล้องจราจร", cameraAvailableHelp: "แตะเพื่อดูกล้องที่ใกล้รถคันนี้ที่สุด ↓",
-  cameraNote: "BMA Traffic เป็นเว็บไซต์แยกต่างหาก เมื่อใช้งานครั้งแรก คุณต้องเปิดและอนุญาตฟีดกล้องบนเว็บไซต์นั้นด้วยตนเอง หากกล้องไม่เริ่มทำงาน ให้อนุญาตหน้า BMA จากนั้นกลับมาที่นี่แล้วเปิดอีกครั้ง",
+  cameraNote: "BUS287 จะเปิดหรือใช้เซสชันกล้อง BMA เดิมที่ยังใช้งานได้อยู่เบื้องหลัง แล้วแสดงภาพที่ตรวจสอบแล้วที่นี่โดยไม่เปิดป๊อปอัป",
+  liveCameraStatus: "กล้อง BMA สด · การติดตามรถยังทำงานแยกกัน",
+  cameraSourceUnavailable: "กล้อง BMA ตอบสนองช้าหรือไม่พร้อมใช้งาน แต่การติดตามรถยังทำงานอยู่",
+  switchingCamera: "กล้องนี้ไม่พร้อมใช้งาน กำลังลองกล้องถัดไปบนเส้นทาง…",
   alertPlace: "🔔 แจ้งเตือนเมื่อรถถึงสถานที่",
   bmaHelpTitle: "เปิดกล้องไม่ได้ใช่หรือไม่?", bmaHelpText: "ให้เปิดหน้ากล้อง BMA โดยตรงก่อน อนุญาตหรือเริ่มฟีดกล้องบนเว็บไซต์นั้น จากนั้นกลับมายัง Bus-287 แล้วทดสอบอีกครั้ง",
   openBmaAgain: "เปิดหน้ากล้อง BMA อีกครั้ง ↗", continueWithoutCamera: "เข้าใจแล้ว — ใช้งานต่อโดยไม่ใช้กล้อง",
@@ -86,11 +104,14 @@ Object.assign(I18N.th, {
 });
 let currentLang = (() => { try { return localStorage.getItem("buswatchLanguage") || "th"; } catch { return "th"; } })();
 const t = (key) => I18N[currentLang]?.[key] || I18N.en[key] || key;
+const cameraFrameURL = (cameraId) => `/api/camera/${encodeURIComponent(cameraId)}/frame?t=${Date.now()}`;
 function applyLanguage() {
   document.documentElement.lang = currentLang;
   $("#language-select").value = currentLang;
   $("#topbar-version").textContent = `v${APP_VERSION}`;
   document.querySelectorAll("[data-i18n]").forEach((element) => { element.textContent = t(element.dataset.i18n); });
+  const preflightImage = $("#preflight-camera-image");
+  if (preflightImage) preflightImage.alt = t("preflightCameraAlt");
   document.querySelectorAll("[data-language-option]").forEach((button) => {
     const selected = button.dataset.languageOption === currentLang;
     button.classList.toggle("selected", selected);
@@ -253,7 +274,7 @@ async function clearAppCache() {
   localStorage.removeItem("lastStopSelection");
   localStorage.removeItem("lastLocationSelection");
   localStorage.removeItem("bmaCameraNoticeSeen");
-  localStorage.removeItem(BMA_PREFLIGHT_KEY);
+  sessionStorage.removeItem(BMA_PREFLIGHT_KEY);
   if ("caches" in window) {
     await Promise.all((await caches.keys()).map((key) => caches.delete(key)));
   }
@@ -934,11 +955,13 @@ async function selectBus(busId, options = {}) {
 
   let camHTML = "";
   let camId = null;
+  let cameraCandidateCount = 0;
   let busCameraBounds = null;
   try {
     const d = await api(`/api/bus?trip=${encodeURIComponent(state.tripId)}&bus=${encodeURIComponent(plate)}`);
     if (selectionVersion !== state.selectionVersion || state.selectedBus !== busId) return;
     const cameraCandidates = d.cameraCandidates || [];
+    cameraCandidateCount = cameraCandidates.length;
     if (cameraCandidates.length) {
       state.cameraIndexOffset = Math.min(state.cameraIndexOffset, cameraCandidates.length - 1);
       const chosen = cameraCandidates[state.cameraIndexOffset];
@@ -986,15 +1009,16 @@ async function selectBus(busId, options = {}) {
         }).addTo(layers.camera);
       }
       camHTML = `
-        <div id="camera-section">
+        <div id="camera-section" data-camera-id="${esc(camId)}">
         <h2>🎥 ${d.cameraSelection === "nearest" ? t("nearestCamera") : t("upcomingCamera")} <small>· ${Math.round(d.cameraDistanceM)} ${t("fromBus")} · ${d.cameraOnRoute ? t("onRoute") : t("nearRoute")}</small></h2>
         <div class="camera-link-info">
           <b>${esc(d.nearestCamera.name_th || d.nearestCamera.name_en || d.nearestCamera.id)}</b>
           <small>${t("cameraId")}: ${esc(d.nearestCamera.id)}</small>
         </div>
-        <a id="camera-link" class="btn btn-ghost btn-direct-camera"
-          data-camera-id="${esc(camId)}" href="${esc(d.nearestCamera.feed_url)}"
-          target="_blank" rel="noopener">${t("openCamera")}</a>
+        <div class="cam-box">
+          <img id="cam-img" data-camera-id="${esc(camId)}" alt="${esc(d.nearestCamera.name_th || d.nearestCamera.name_en || d.nearestCamera.id)}">
+        </div>
+        <small class="cam-status" id="cam-status">${t("cameraChecking")}</small>
         <div class="camera-site-note">ℹ️ ${t("cameraNote")}</div>
         <div class="btn-row camera-nav">
           <button class="btn btn-ghost" id="btn-prev-camera" ${state.cameraIndexOffset <= 0 ? "disabled" : ""}>${t("previousCamera")}</button>
@@ -1017,7 +1041,7 @@ async function selectBus(busId, options = {}) {
     if (nextStop) nextStop.textContent = `${b.next_stop_name || "?"} (${Math.round(Number(b.distance_to_next_stop) || 0)} m)`;
     if (speed) speed.textContent = `${Math.round(Number(b.speed) || 0)} km/h`;
     if (updated) updated.textContent = fmtAgo(b.received);
-    const shownCamera = document.getElementById("camera-link")?.dataset.cameraId || null;
+    const shownCamera = document.getElementById("camera-section")?.dataset.cameraId || null;
     // Missing camera data means "keep what is already rendered", never
     // "remove the camera". BMA availability can fluctuate between refreshes.
     if (!camId || (shownCamera && String(camId) === shownCamera)) return;
@@ -1092,7 +1116,15 @@ async function selectBus(busId, options = {}) {
       sheetContent.scrollTo({ top: sheetContent.scrollHeight, behavior: "smooth" });
     });
   }
-  if (camId && document.getElementById("cam-img")) startCamViewer(camId);
+  if (camId && document.getElementById("cam-img")) {
+    startCamViewer(camId, () => {
+      if (state.cameraIndexOffset >= cameraCandidateCount - 1) return;
+      state.cameraIndexOffset++;
+      state.activeCameraId = null;
+      toast(t("switchingCamera"));
+      selectBus(busId);
+    });
+  }
 }
 
 /* ---------- live camera viewer ---------- */
@@ -1100,9 +1132,11 @@ let camTimer = null;
 let camGeneration = 0;
 let camLoading = false;
 
-function startCamViewer(camId) {
+function startCamViewer(camId, onUnavailable) {
   stopCamViewer();
   const generation = ++camGeneration;
+  let consecutiveFailures = 0;
+  let switched = false;
   const current = document.getElementById("cam-img");
   if (current) current.dataset.cameraId = camId;
   const load = () => {
@@ -1113,11 +1147,12 @@ function startCamViewer(camId) {
     const next = new Image();
     next.onload = () => {
       camLoading = false;
+      consecutiveFailures = 0;
       if (generation !== camGeneration || el.dataset.cameraId !== camId) return;
       el.src = next.src;
       el.classList.remove("cam-err");
       const status = document.getElementById("cam-status");
-      if (status) status.textContent = "Live camera · bus tracking stays independent";
+      if (status) status.textContent = t("liveCameraStatus");
       if (el.dataset.scrollBottom === "true") {
         el.dataset.scrollBottom = "false";
         requestAnimationFrame(() => {
@@ -1128,12 +1163,18 @@ function startCamViewer(camId) {
     next.onerror = () => {
       camLoading = false;
       if (generation === camGeneration && el.dataset.cameraId === camId) {
+        consecutiveFailures++;
         el.classList.add("cam-err");
         const status = document.getElementById("cam-status");
-        if (status) status.textContent = "Camera source is slow or unavailable; bus tracking is still live.";
+        if (status) status.textContent = t("cameraSourceUnavailable");
+        if (!switched && consecutiveFailures >= 2 && onUnavailable) {
+          switched = true;
+          stopCamViewer();
+          onUnavailable();
+        }
       }
     };
-    next.src = `/api/camera/${encodeURIComponent(camId)}/frame?t=${Date.now()}`;
+    next.src = cameraFrameURL(camId);
   };
   load();
   camTimer = setInterval(load, 3000);
@@ -1322,7 +1363,7 @@ function clearTripLayers() {
 $("#btn-home").onclick = () => { clearTripLayers(); renderHome(); };
 $("#btn-reset").onclick = () => {
   if (!window.confirm(t("reset"))) return;
-  localStorage.removeItem(BMA_PREFLIGHT_KEY);
+  sessionStorage.removeItem(BMA_PREFLIGHT_KEY);
   localStorage.removeItem("lastStopSelection");
   localStorage.removeItem("bmaCameraNoticeSeen");
   location.reload();
@@ -1352,7 +1393,7 @@ $("#btn-about").onclick = () => {
     </div>
   `);
   $("#btn-retest-camera").onclick = () => {
-    localStorage.removeItem(BMA_PREFLIGHT_KEY);
+    sessionStorage.removeItem(BMA_PREFLIGHT_KEY);
     location.reload();
   };
   $("#btn-about-close").onclick = () => {
@@ -1442,30 +1483,70 @@ async function init() {
 
 function requireCameraPreflight() {
   try {
-    if (localStorage.getItem(BMA_PREFLIGHT_KEY)) return Promise.resolve();
-  } catch { /* continue with the one-time check */ }
+    if (sessionStorage.getItem(BMA_PREFLIGHT_KEY)) return Promise.resolve();
+  } catch { /* continue with the per-session check */ }
   const overlay = $("#camera-preflight");
-  const result = $("#preflight-result");
-  const help = $("#preflight-help");
-  if (/iPhone|iPod/i.test(navigator.userAgent)) {
-    $("#iphone-browser-warning").classList.remove("hidden");
-  }
+  const image = $("#preflight-camera-image");
+  const status = $("#preflight-camera-status");
+  const retry = $("#btn-retry-camera");
+  const enter = $("#btn-bma-worked");
+  let verificationAttempt = 0;
   overlay.classList.remove("hidden");
   return new Promise((resolve) => {
-    $("#btn-test-bma").addEventListener("click", () => result.classList.remove("hidden"));
-    const finish = (cameraWorked) => {
+    const setStatus = (key) => {
+      status.dataset.i18n = key;
+      status.textContent = t(key);
+    };
+    const verify = () => {
+      const attempt = ++verificationAttempt;
+      let cameraIndex = 0;
+      enter.disabled = true;
+      retry.classList.add("hidden");
+      image.classList.add("hidden");
+      image.removeAttribute("src");
+      setStatus("cameraChecking");
+      const tryCamera = () => {
+        if (attempt !== verificationAttempt) return;
+        const cameraId = PREFLIGHT_CAMERA_IDS[cameraIndex];
+        const timeout = setTimeout(() => image.onerror?.(), 14000);
+        image.onload = () => {
+          if (attempt !== verificationAttempt) return;
+          clearTimeout(timeout);
+          image.dataset.cameraId = cameraId;
+          image.classList.remove("hidden");
+          setStatus("cameraVerified");
+          status.classList.add("verified");
+          enter.disabled = false;
+        };
+        image.onerror = () => {
+          if (attempt !== verificationAttempt) return;
+          clearTimeout(timeout);
+          image.classList.add("hidden");
+          status.classList.remove("verified");
+          cameraIndex++;
+          if (cameraIndex < PREFLIGHT_CAMERA_IDS.length) {
+            setStatus("cameraTryingNext");
+            setTimeout(tryCamera, 250);
+            return;
+          }
+          setStatus("cameraCheckFailed");
+          retry.classList.remove("hidden");
+        };
+        image.src = cameraFrameURL(cameraId);
+      };
+      tryCamera();
+    };
+    const finish = () => {
+      if (enter.disabled) return;
       try {
-        localStorage.setItem(BMA_PREFLIGHT_KEY, JSON.stringify({ cameraWorked, checkedAt: Date.now() }));
-      } catch { /* private browsing may not retain the answer */ }
+        sessionStorage.setItem(BMA_PREFLIGHT_KEY, JSON.stringify({ cameraVerified: true, cameraId: image.dataset.cameraId, checkedAt: Date.now() }));
+      } catch { /* private browsing may not retain the verification */ }
       overlay.classList.add("hidden");
       resolve();
     };
-    $("#btn-bma-worked").onclick = () => finish(true);
-    $("#btn-bma-failed").onclick = () => {
-      help.classList.remove("hidden");
-      help.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    };
-    $("#btn-bma-continue-without").onclick = () => finish(false);
+    retry.onclick = verify;
+    enter.onclick = finish;
+    verify();
   });
 }
 

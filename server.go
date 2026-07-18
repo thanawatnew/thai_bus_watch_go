@@ -215,10 +215,10 @@ func (s *Server) handleTelegramStatus(w http.ResponseWriter, r *http.Request) {
 // HTTPS web app can show camera video (the source site is HTTP-only and
 // session-bound, which iPhones refuse to load directly).
 func (s *Server) handleCameraFrame(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 7*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 12*time.Second)
 	defer cancel()
 
-	frame, err := GetCameraFrame(ctx, r.PathValue("id"))
+	frame, err := GetCameraFrameForRequest(ctx, r.PathValue("id"))
 	if err != nil {
 		writeErr(w, http.StatusBadGateway, err)
 		return

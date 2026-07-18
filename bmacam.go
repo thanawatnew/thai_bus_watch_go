@@ -6,8 +6,9 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
-	"net/netip"
 	"net/url"
+	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -25,6 +26,7 @@ type camSession struct {
 }
 
 var bmaCam = newCamSession()
+var bmaRelayClient = &http.Client{Timeout: 15 * time.Second}
 
 const (
 	camSessionTTL  = 20 * time.Minute
@@ -117,16 +119,62 @@ func (c *camSession) Frame(ctx context.Context, camID string) ([]byte, error) {
 	}
 
 	if len(frame) < blankFrameSize {
+		// The stream is no longer viewable. Force the next request to revisit
+		// PlayVideo instead of waiting for the normal idle timeout.
+		delete(c.lastPlayed, camID)
 		return nil, fmt.Errorf("camera %s is not sending frames right now (id=%s size=%d)", camID, camID, len(frame))
 	}
+	// A good frame proves that this camera session is still active. Keep using
+	// show.aspx directly and avoid repeating the index/PlayVideo flow.
+	c.lastPlayed[camID] = time.Now()
 	return frame, nil
 }
 
-// GetCameraFrame is the package-level helper used by the server and watcher.
-func GetCameraFrame(ctx context.Context, cameraAddress string) ([]byte, error) {
-	addr, err := netip.ParseAddr(cameraAddress)
-	if err != nil || !addr.Is4() {
-		return nil, fmt.Errorf("invalid camera address %q", cameraAddress)
+// GetCameraFrameByID validates the public numeric ID against the camera catalog
+// before passing it through BMA's PlayVideo/show.aspx session flow.
+func GetCameraFrameByID(ctx context.Context, cameraID string) ([]byte, error) {
+	for _, camera := range CachedBMACameras() {
+		if camera.ID == cameraID {
+			return bmaCam.Frame(ctx, camera.ID)
+		}
 	}
-	return bmaCam.Frame(ctx, cameraAddress)
+	return nil, fmt.Errorf("unknown camera ID %q", cameraID)
+}
+
+// GetCameraFrameForRequest uses a secure camera-only upstream when configured.
+// This lets Oracle serve the public same-origin endpoint even when its network
+// cannot reach BMA's HTTP-only site directly.
+func GetCameraFrameForRequest(ctx context.Context, cameraID string) ([]byte, error) {
+	relayBase := strings.TrimRight(strings.TrimSpace(os.Getenv("BMA_CAMERA_RELAY_URL")), "/")
+	if relayBase == "" {
+		return GetCameraFrameByID(ctx, cameraID)
+	}
+	relayURL, err := url.Parse(relayBase)
+	if err != nil || relayURL.Scheme != "https" || relayURL.Host == "" {
+		return nil, fmt.Errorf("invalid BMA_CAMERA_RELAY_URL")
+	}
+	relayURL.Path = strings.TrimRight(relayURL.Path, "/") + "/camera/" + url.PathEscape(cameraID) + "/frame"
+	relayURL.RawQuery = ""
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, relayURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", "BUS287-Oracle/1.0")
+	resp, err := bmaRelayClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("camera relay: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("camera relay HTTP %d", resp.StatusCode)
+	}
+	frame, err := io.ReadAll(io.LimitReader(resp.Body, 5<<20))
+	if err != nil {
+		return nil, fmt.Errorf("camera relay: %w", err)
+	}
+	if len(frame) < blankFrameSize {
+		return nil, fmt.Errorf("camera relay returned an invalid frame")
+	}
+	return frame, nil
 }

@@ -6,6 +6,7 @@ services:
     environment:
       PORT: "8080"
       SELF_URL: "https://${DOMAIN}"
+      BMA_CAMERA_RELAY_URL: "${BMA_CAMERA_RELAY_URL:-https://thanawat-ms7c37-kubuntu.tailec6f8a.ts.net}"
       TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN:-}"
       TELEGRAM_CHAT_ID: "${TELEGRAM_CHAT_ID:-}"
     expose:

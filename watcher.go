@@ -373,7 +373,7 @@ func (m *WatchManager) checkCameraPass(w *Watch, lat, lon float64, shape []LatLo
 	w.cameraSent[cam.ID] = time.Now()
 	w.mu.Unlock()
 
-	frame, err := GetCameraFrame(ctx, cam.IP)
+	frame, err := GetCameraFrameByID(ctx, cam.ID)
 	if err != nil {
 		log.Printf("watch %s: camera %s frame failed: %v", w.ID, cam.ID, err)
 		return

@@ -339,6 +339,16 @@ input[type=text]:focus { border-color: #2f6fed; }
 .preflight-steps b { color: #e8eaed; }
 .preflight-card .btn { margin: 9px 0; text-decoration: none; }
 .preflight-card > small { display: block; margin-top: 12px; line-height: 1.45; }
+.preflight-camera-check { margin: 14px 0 8px; }
+.preflight-camera-status {
+  margin-bottom: 9px; padding: 10px 12px; border-radius: 10px;
+  background: #3a2b13; color: #f2cf88; font-size: 13px; font-weight: 700;
+}
+.preflight-camera-status.verified { background: #16351f; color: #8be0a0; }
+.preflight-cam-box {
+  display: grid; place-items: center; min-height: 180px; aspect-ratio: 352 / 288;
+}
+.preflight-cam-box img { width: 100%; height: 100%; max-height: 42dvh; object-fit: contain; }
 .preflight-help {
   margin-top: 12px; padding: 12px; border-radius: 12px;
   background: #24211a; border: 1px solid rgba(232,178,90,.3);
