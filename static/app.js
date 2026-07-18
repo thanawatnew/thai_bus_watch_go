@@ -3,8 +3,8 @@
 
 const BANGKOK = [13.7563, 100.5018];
 const REFRESH_MS = 5000;
-const APP_VERSION = "0.6.4";
-const BMA_PREFLIGHT_KEY = "bmaCameraPreflightV2";
+const APP_VERSION = "0.6.5";
+const BMA_PREFLIGHT_KEY = "bmaCameraPreflightV3";
 const PREFLIGHT_CAMERA_IDS = ["1443", "603", "1456", "1286", "1258"];
 const I18N = {
   en: { step:"Step", open:"Open", hide:"Hide", location:"Choose a location", locationHelp:"Use your location or tap your position on the map.", stop:"Choose a nearby stop", stopHelp:"Tap a stop to see its live routes and arrivals.", route:"Choose a bus route", routeHelp:"Tap the route you want to follow.", routeStop:"Choose a route stop", routeStopHelp:"Tap the stop where you want to meet the bus.", bus:"Choose a live bus", busHelp:"Tap a bus below to open its live details.", view:"View bus and camera", viewHelp:"Review the live bus details, then open the available traffic camera.", reset:"Start over from Step 1 and run the BMA camera test again? Your recent routes will be kept.", preflightTitle:"Test BMA camera access", iphoneTitle:"iPhone users: Firefox is recommended.", iphoneText:"Safari may not open BMA Traffic's external HTTP-only camera page reliably. Open Bus-287 in Firefox before running this test.", preflightIntro:"BMA Traffic is a separate, HTTP-only website. Its availability and content are controlled by BMA Traffic, not Bus-287.", preflightStep1:"1. Open the test: tap the blue BMA camera button below.", preflightStep2:"2. Allow the external page only if you accept opening BMA's HTTP website.", preflightStep3:"3. Check whether the BMA camera content appears.", preflightStep4:"4. Return to this Bus-287 browser tab.", preflightStep5:"5. Report Yes or No below to enter Bus Watch.", openBmaTest:"🎥 Open BMA camera test ↗", bmaWorkedQuestion:"Did the BMA camera page open correctly?", bmaYes:"Yes, camera worked — continue", bmaNo:"No — continue with bus tracking only", preflightDisclaimer:"By continuing, you understand that external camera access may be insecure, unavailable, or behave differently in each browser." },
@@ -13,18 +13,23 @@ const I18N = {
 Object.assign(I18N.en, {
   projectStoryTitle: "Why Bus-287?",
   projectStoryText: "Bus-287 began with a problem: GPS data sometimes shows a route number that does not match the bus that actually arrives. It links a bus's location with nearby traffic cameras so you can check whether it has passed a camera, note what the vehicle looks like, and use the view as supporting evidence that the route number may be incorrect. Even if you do not have this problem, you can still use it to follow buses or view current travel conditions.",
-  preflightTitle: "Verify a camera before opening it",
-  preflightIntro: "BUS287 first checks for a real, non-blank BMA camera image. After one passes, the button opens that exact verified camera in a BMA Traffic popup.",
-  preflightStep1: "BUS287 creates or reuses a BMA camera session in the background.",
-  preflightStep2: "It tries another camera automatically if the first camera does not return a valid frame.",
-  preflightStep3: "Open the verified camera popup, then confirm whether it works in your browser.",
-  cameraChecking: "Checking for a live BMA camera image…", cameraVerified: "Live frame verified. Open this camera on BMA Traffic.",
+  preflightTitle: "Set up BMA access and verify a camera",
+  preflightIntro: "BUS287 verifies a real camera image first. BMA Traffic also requires its own browser session before a direct Camera ID can show the feed.",
+  preflightStep1: "Wait for BUS287 to find a working camera and show its Camera ID.",
+  preflightStep2: "Desktop: BUS287 opens the BMA homepage to start your session, then sends that popup to the verified Camera ID. Mobile: return to BUS287 after the BMA tab opens and tap the Camera ID button that appears.",
+  preflightStep3: "If the automatic step is blocked, select the pin with the same Camera ID on the BMA map. Then return here and confirm whether the feed appeared.",
+  cameraChecking: "Checking for a live BMA camera image…", cameraVerified: "Live frame verified.",
   cameraTryingNext: "That camera is unavailable. Trying another BMA camera…",
   cameraCheckFailed: "The camera could not be verified right now. Please retry.", retryCamera: "Retry camera check",
-  openVerifiedBma: "Open verified BMA camera ↗", bmaWorkedQuestion: "Did this verified camera open correctly in BMA Traffic?",
+  openVerifiedBma: "Set up BMA and open verified camera ↗", bmaWorkedQuestion: "Did the verified camera feed appear in BMA Traffic?",
+  cameraSessionStarting: "Opening BMA to start your browser session…",
+  cameraSessionReady: "BMA session started. Opening the verified Camera ID…",
+  mobileBmaReturn: "BMA opened in a new tab. Return to BUS287, then tap the Camera ID button below.",
+  openCameraId: "Open Camera ID",
+  popupBlocked: "The popup was blocked. Allow popups for BUS287, then tap the button again.",
   bmaYes: "Yes, camera works — enter BUS287", bmaNo: "No — verify a different camera",
   preflightCameraAlt: "Verified live BMA traffic camera",
-  preflightDisclaimer: "BUS287 rejects blank placeholder frames. BMA Traffic opens as an external HTTP popup and can still behave differently in each browser.",
+  preflightDisclaimer: "BUS287 rejects blank placeholder frames. If BMA does not complete the automatic step, use its map to select the pin whose Camera ID is shown above.",
   resetLabel: "↻ Reset", twoNearest: "Two nearest live buses", allBuses: "All buses",
   noGps: "No buses reporting GPS right now.", noApproaching: "No approaching bus estimate is available.",
   noLiveTrip: "No live buses on this trip.", loadingArrival: "Loading arrival estimate…",
@@ -61,18 +66,23 @@ Object.assign(I18N.en, {
 Object.assign(I18N.th, {
   projectStoryTitle: "Bus-287 เกิดขึ้นเพื่ออะไร?",
   projectStoryText: "Bus-287 เกิดจากปัญหาที่ข้อมูล GPS บางครั้งแสดงเลขสายไม่ตรงกับรถที่วิ่งมาจริง ระบบจึงเชื่อมตำแหน่งรถกับกล้องจราจรใกล้เคียง เพื่อช่วยดูว่ารถผ่านกล้องแล้วหรือยัง สังเกตลักษณะรถ และใช้ภาพเป็นข้อมูลประกอบว่าเลขสายอาจคลาดเคลื่อนหรือไม่ แม้ไม่ได้เจอปัญหานี้ ก็เปิดดูเพื่อติดตามรถหรือดูสภาพการเดินทางได้เช่นกัน",
-  preflightTitle: "ตรวจสอบกล้องก่อนเปิด",
-  preflightIntro: "BUS287 จะตรวจสอบก่อนว่าได้รับภาพจริงที่ไม่ใช่ภาพว่างจากกล้อง BMA เมื่อพบกล้องที่ใช้งานได้ ปุ่มจะเปิดกล้องตัวเดียวกันนั้นในป๊อปอัปของ BMA Traffic",
-  preflightStep1: "BUS287 สร้างหรือใช้เซสชันกล้อง BMA ที่ยังใช้งานได้อยู่เบื้องหลัง",
-  preflightStep2: "หากกล้องแรกไม่ส่งภาพที่ถูกต้อง ระบบจะลองกล้องอื่นให้อัตโนมัติ",
-  preflightStep3: "เปิดป๊อปอัปของกล้องที่ตรวจสอบแล้ว จากนั้นยืนยันว่ากล้องทำงานในเบราว์เซอร์ของคุณ",
-  cameraChecking: "กำลังตรวจสอบภาพสดจากกล้อง BMA…", cameraVerified: "ตรวจสอบภาพสดสำเร็จ เปิดกล้องนี้บน BMA Traffic ได้แล้ว",
+  preflightTitle: "ตั้งค่าการเข้าถึง BMA และตรวจสอบกล้อง",
+  preflightIntro: "BUS287 จะตรวจสอบภาพจริงก่อน แต่ BMA Traffic ต้องสร้างเซสชันในเบราว์เซอร์ของผู้ใช้ก่อน จึงจะเปิดฟีดด้วยรหัสกล้องโดยตรงได้",
+  preflightStep1: "รอให้ BUS287 หากล้องที่ใช้งานได้และแสดงรหัสกล้อง (Camera ID)",
+  preflightStep2: "คอมพิวเตอร์: ระบบจะเปิดหน้าแรก BMA เพื่อสร้างเซสชัน แล้วพาป๊อปอัปไปยังรหัสกล้องที่ตรวจสอบแล้ว มือถือ: เมื่อแท็บ BMA เปิด ให้กลับมาที่ BUS287 แล้วแตะปุ่มรหัสกล้องที่ปรากฏ",
+  preflightStep3: "หากเบราว์เซอร์ไม่เปลี่ยนหน้าให้อัตโนมัติ ให้เลือก pin ที่มีรหัสกล้องเดียวกันบนแผนที่ BMA แล้วกลับมายืนยันว่าภาพแสดงหรือไม่",
+  cameraChecking: "กำลังตรวจสอบภาพสดจากกล้อง BMA…", cameraVerified: "ตรวจสอบภาพสดสำเร็จ",
   cameraTryingNext: "กล้องนี้ไม่พร้อมใช้งาน กำลังลองกล้อง BMA ตัวอื่น…",
   cameraCheckFailed: "ขณะนี้ยังตรวจสอบกล้องไม่ได้ กรุณาลองอีกครั้ง", retryCamera: "ลองตรวจสอบกล้องอีกครั้ง",
-  openVerifiedBma: "เปิดกล้อง BMA ที่ตรวจสอบแล้ว ↗", bmaWorkedQuestion: "กล้องที่ตรวจสอบแล้วเปิดบน BMA Traffic ได้ถูกต้องหรือไม่?",
+  openVerifiedBma: "ตั้งค่า BMA และเปิดกล้องที่ตรวจสอบแล้ว ↗", bmaWorkedQuestion: "ภาพจากกล้องที่ตรวจสอบแล้วแสดงบน BMA Traffic หรือไม่?",
+  cameraSessionStarting: "กำลังเปิด BMA เพื่อสร้างเซสชันในเบราว์เซอร์…",
+  cameraSessionReady: "สร้างเซสชัน BMA แล้ว กำลังเปิดรหัสกล้องที่ตรวจสอบไว้…",
+  mobileBmaReturn: "เปิด BMA ในแท็บใหม่แล้ว ให้กลับมาที่ BUS287 แล้วแตะปุ่มรหัสกล้องด้านล่าง",
+  openCameraId: "เปิดรหัสกล้อง",
+  popupBlocked: "เบราว์เซอร์บล็อกป๊อปอัป กรุณาอนุญาตป๊อปอัปสำหรับ BUS287 แล้วแตะปุ่มอีกครั้ง",
   bmaYes: "ใช่ กล้องใช้งานได้ — เข้าใช้ BUS287", bmaNo: "ไม่ — ตรวจสอบกล้องตัวอื่น",
   preflightCameraAlt: "ภาพสดที่ตรวจสอบแล้วจากกล้องจราจร BMA",
-  preflightDisclaimer: "BUS287 จะไม่ยอมรับภาพว่าง แต่ BMA Traffic จะเปิดเป็นป๊อปอัป HTTP ภายนอกและอาจทำงานต่างกันในแต่ละเบราว์เซอร์",
+  preflightDisclaimer: "BUS287 จะไม่ยอมรับภาพว่าง หาก BMA ไม่ทำขั้นตอนอัตโนมัติจนจบ ให้เลือก pin บนแผนที่ BMA ที่มีรหัสกล้องตามที่แสดงด้านบน",
   resetLabel: "↻ รีเซ็ต", twoNearest: "รถที่กำลังวิ่งใกล้ที่สุด 2 คัน", allBuses: "รถทั้งหมด",
   noGps: "ขณะนี้ไม่มีรถส่งข้อมูล GPS", noApproaching: "ไม่มีข้อมูลประมาณเวลาของรถที่กำลังเข้าใกล้",
   noLiveTrip: "ไม่มีรถที่กำลังวิ่งในเที่ยวนี้", loadingArrival: "กำลังโหลดเวลาถึงโดยประมาณ…",
@@ -116,6 +126,8 @@ function applyLanguage() {
   document.querySelectorAll("[data-i18n]").forEach((element) => { element.textContent = t(element.dataset.i18n); });
   const preflightImage = $("#preflight-camera-image");
   if (preflightImage) preflightImage.alt = t("preflightCameraAlt");
+  const directCamera = $("#btn-open-camera-id");
+  if (directCamera?.dataset.cameraId) directCamera.textContent = `${t("openCameraId")} ${directCamera.dataset.cameraId} ↗`;
   document.querySelectorAll("[data-language-option]").forEach((button) => {
     const selected = button.dataset.languageOption === currentLang;
     button.classList.toggle("selected", selected);
@@ -1496,6 +1508,7 @@ function requireCameraPreflight() {
   const status = $("#preflight-camera-status");
   const retry = $("#btn-retry-camera");
   const openCamera = $("#btn-test-bma");
+  const directCamera = $("#btn-open-camera-id");
   const result = $("#preflight-result");
   const enter = $("#btn-bma-worked");
   const failed = $("#btn-bma-failed");
@@ -1513,6 +1526,9 @@ function requireCameraPreflight() {
       verifiedCameraIndex = -1;
       openCamera.removeAttribute("href");
       openCamera.setAttribute("aria-disabled", "true");
+      directCamera.removeAttribute("href");
+      directCamera.removeAttribute("data-camera-id");
+      directCamera.classList.add("hidden");
       result.classList.add("hidden");
       retry.classList.add("hidden");
       image.classList.add("hidden");
@@ -1533,10 +1549,15 @@ function requireCameraPreflight() {
           image.dataset.cameraId = cameraId;
           image.classList.remove("hidden");
           setStatus("cameraVerified");
+          status.textContent = `${t("cameraVerified")} ${t("cameraId")}: ${cameraId}`;
           status.classList.add("verified");
           verifiedCameraIndex = cameraIndex;
-          openCamera.href = `http://www.bmatraffic.com/PlayVideo.aspx?ID=${encodeURIComponent(cameraId)}`;
+          openCamera.href = "http://www.bmatraffic.com/";
+          openCamera.dataset.cameraId = cameraId;
           openCamera.setAttribute("aria-disabled", "false");
+          directCamera.href = `http://www.bmatraffic.com/PlayVideo.aspx?ID=${encodeURIComponent(cameraId)}`;
+          directCamera.dataset.cameraId = cameraId;
+          directCamera.textContent = `${t("openCameraId")} ${cameraId} ↗`;
         };
         image.onerror = () => {
           if (attempt !== verificationAttempt) return;
@@ -1569,8 +1590,41 @@ function requireCameraPreflight() {
         event.preventDefault();
         return;
       }
+      event.preventDefault();
+      const cameraId = openCamera.dataset.cameraId;
+      const popup = window.open("", "bus287-bma-camera");
+      if (!popup) {
+        setStatus("popupBlocked");
+        status.classList.remove("verified");
+        return;
+      }
+      try { popup.opener = null; } catch { /* best-effort isolation */ }
+      popup.location.href = "http://www.bmatraffic.com/";
+      setStatus("cameraSessionStarting");
+      status.classList.add("verified");
+      directCamera.classList.remove("hidden");
       result.classList.remove("hidden");
       result.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      const mobileBrowser = window.matchMedia?.("(pointer: coarse)").matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (mobileBrowser) {
+        setStatus("mobileBmaReturn");
+        return;
+      }
+      setTimeout(() => {
+        if (popup.closed) return;
+        setStatus("cameraSessionReady");
+        try {
+          popup.location.href = `http://www.bmatraffic.com/PlayVideo.aspx?ID=${encodeURIComponent(cameraId)}`;
+          popup.focus();
+        } catch {
+          // The BMA map remains open so the user can select the matching pin.
+        }
+      }, 3000);
+    };
+    directCamera.onclick = () => {
+      setStatus("cameraSessionReady");
+      status.classList.add("verified");
+      result.classList.remove("hidden");
     };
     retry.onclick = () => verify(0);
     enter.onclick = finish;

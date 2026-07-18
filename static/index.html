@@ -58,27 +58,28 @@
       <h2 data-i18n="projectStoryTitle">Bus-287 เกิดขึ้นเพื่ออะไร?</h2>
       <p data-i18n="projectStoryText">Bus-287 เกิดจากปัญหาที่ข้อมูล GPS บางครั้งแสดงเลขสายไม่ตรงกับรถที่วิ่งมาจริง ระบบจึงเชื่อมตำแหน่งรถกับกล้องจราจรใกล้เคียง เพื่อช่วยดูว่ารถผ่านกล้องแล้วหรือยัง สังเกตลักษณะรถ และใช้ภาพเป็นข้อมูลประกอบว่าเลขสายอาจคลาดเคลื่อนหรือไม่ แม้ไม่ได้เจอปัญหานี้ ก็เปิดดูเพื่อติดตามรถหรือดูสภาพการเดินทางได้เช่นกัน</p>
     </div>
-    <h1 id="preflight-title" data-i18n="preflightTitle">Verify a camera before opening it</h1>
-    <p data-i18n="preflightIntro">BMA Traffic is a separate, HTTP-only website. Its availability and content are controlled by BMA Traffic, not Bus-287.</p>
+    <h1 id="preflight-title" data-i18n="preflightTitle">ตั้งค่าการเข้าถึง BMA และตรวจสอบกล้อง</h1>
+    <p data-i18n="preflightIntro">BUS287 จะตรวจสอบภาพจริงก่อน แต่ BMA Traffic ต้องสร้างเซสชันในเบราว์เซอร์ของผู้ใช้ก่อน จึงจะเปิดฟีดด้วยรหัสกล้องโดยตรงได้</p>
     <ol class="preflight-steps">
-      <li data-i18n="preflightStep1">BUS287 creates or reuses a BMA camera session in the background.</li>
-      <li data-i18n="preflightStep2">It tries another camera automatically if the first camera does not return a valid frame.</li>
-      <li data-i18n="preflightStep3">Open the verified camera popup, then confirm whether it works in your browser.</li>
+      <li data-i18n="preflightStep1">รอให้ BUS287 หากล้องที่ใช้งานได้และแสดงรหัสกล้อง (Camera ID)</li>
+      <li data-i18n="preflightStep2">คอมพิวเตอร์: ระบบจะเปิดหน้าแรก BMA เพื่อสร้างเซสชัน แล้วพาป๊อปอัปไปยังรหัสกล้องที่ตรวจสอบแล้ว มือถือ: เมื่อแท็บ BMA เปิด ให้กลับมาที่ BUS287 แล้วแตะปุ่มรหัสกล้องที่ปรากฏ</li>
+      <li data-i18n="preflightStep3">หากเบราว์เซอร์ไม่เปลี่ยนหน้าให้อัตโนมัติ ให้เลือก pin ที่มีรหัสกล้องเดียวกันบนแผนที่ BMA แล้วกลับมายืนยันว่าภาพแสดงหรือไม่</li>
     </ol>
     <div class="preflight-camera-check">
-      <div id="preflight-camera-status" class="preflight-camera-status" role="status" data-i18n="cameraChecking">Checking for a live BMA camera image…</div>
+      <div id="preflight-camera-status" class="preflight-camera-status" role="status" data-i18n="cameraChecking">กำลังตรวจสอบภาพสดจากกล้อง BMA…</div>
       <div class="cam-box preflight-cam-box">
         <img id="preflight-camera-image" class="hidden" alt="Verified live BMA traffic camera">
       </div>
       <button class="btn btn-ghost hidden" id="btn-retry-camera" data-i18n="retryCamera">Retry camera check</button>
     </div>
-    <a class="btn" id="btn-test-bma" aria-disabled="true" target="_blank" rel="noopener" data-i18n="openVerifiedBma">Open verified BMA camera ↗</a>
+    <a class="btn" id="btn-test-bma" aria-disabled="true" target="bus287-bma-camera" data-i18n="openVerifiedBma">ตั้งค่า BMA และเปิดกล้องที่ตรวจสอบแล้ว ↗</a>
+    <a class="btn btn-ghost hidden" id="btn-open-camera-id" target="_blank" rel="noopener">เปิดรหัสกล้อง ↗</a>
     <div id="preflight-result" class="hidden">
-      <p><b data-i18n="bmaWorkedQuestion">Did this verified camera open correctly in BMA Traffic?</b></p>
-      <button class="btn" id="btn-bma-worked" data-i18n="bmaYes">Yes, camera works — enter BUS287</button>
-      <button class="btn btn-ghost" id="btn-bma-failed" data-i18n="bmaNo">No — verify a different camera</button>
+      <p><b data-i18n="bmaWorkedQuestion">ภาพจากกล้องที่ตรวจสอบแล้วแสดงบน BMA Traffic หรือไม่?</b></p>
+      <button class="btn" id="btn-bma-worked" data-i18n="bmaYes">ใช่ กล้องใช้งานได้ — เข้าใช้ BUS287</button>
+      <button class="btn btn-ghost" id="btn-bma-failed" data-i18n="bmaNo">ไม่ — ตรวจสอบกล้องตัวอื่น</button>
     </div>
-    <small data-i18n="preflightDisclaimer">By continuing, you understand that external camera access may be insecure, unavailable, or behave differently in each browser.</small>
+    <small data-i18n="preflightDisclaimer">BUS287 จะไม่ยอมรับภาพว่าง หาก BMA ไม่ทำขั้นตอนอัตโนมัติจนจบ ให้เลือก pin บนแผนที่ BMA ที่มีรหัสกล้องตามที่แสดงด้านบน</small>
     <div class="preflight-usage">
       <h2 data-i18n="usageTitle">How to use Bus-287</h2>
       <ol class="preflight-steps">
