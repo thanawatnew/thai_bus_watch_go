@@ -13,16 +13,18 @@ const I18N = {
 Object.assign(I18N.en, {
   projectStoryTitle: "Why Bus-287?",
   projectStoryText: "Bus-287 began with a problem: GPS data sometimes shows a route number that does not match the bus that actually arrives. It links a bus's location with nearby traffic cameras so you can check whether it has passed a camera, note what the vehicle looks like, and use the view as supporting evidence that the route number may be incorrect. Even if you do not have this problem, you can still use it to follow buses or view current travel conditions.",
-  preflightTitle: "Verify live camera access",
-  preflightIntro: "Before you enter, BUS287 must receive a real, non-blank image from a BMA camera. This check runs inside BUS287—no popup or external page is opened.",
+  preflightTitle: "Verify a camera before opening it",
+  preflightIntro: "BUS287 first checks for a real, non-blank BMA camera image. After one passes, the button opens that exact verified camera in a BMA Traffic popup.",
   preflightStep1: "BUS287 creates or reuses a BMA camera session in the background.",
-  preflightStep2: "It reaches the camera page only when needed, then requests a fresh frame.",
-  preflightStep3: "The Continue button unlocks only after a real camera image loads.",
-  cameraChecking: "Checking for a live BMA camera image…", cameraVerified: "Live camera verified. You can enter BUS287.",
+  preflightStep2: "It tries another camera automatically if the first camera does not return a valid frame.",
+  preflightStep3: "Open the verified camera popup, then confirm whether it works in your browser.",
+  cameraChecking: "Checking for a live BMA camera image…", cameraVerified: "Live frame verified. Open this camera on BMA Traffic.",
   cameraTryingNext: "That camera is unavailable. Trying another BMA camera…",
   cameraCheckFailed: "The camera could not be verified right now. Please retry.", retryCamera: "Retry camera check",
-  cameraVerifiedContinue: "Camera verified — enter BUS287", preflightCameraAlt: "Verified live BMA traffic camera",
-  preflightDisclaimer: "BUS287 rejects BMA's blank placeholder frames. Camera availability can still change after this check.",
+  openVerifiedBma: "Open verified BMA camera ↗", bmaWorkedQuestion: "Did this verified camera open correctly in BMA Traffic?",
+  bmaYes: "Yes, camera works — enter BUS287", bmaNo: "No — verify a different camera",
+  preflightCameraAlt: "Verified live BMA traffic camera",
+  preflightDisclaimer: "BUS287 rejects blank placeholder frames. BMA Traffic opens as an external HTTP popup and can still behave differently in each browser.",
   resetLabel: "↻ Reset", twoNearest: "Two nearest live buses", allBuses: "All buses",
   noGps: "No buses reporting GPS right now.", noApproaching: "No approaching bus estimate is available.",
   noLiveTrip: "No live buses on this trip.", loadingArrival: "Loading arrival estimate…",
@@ -41,10 +43,10 @@ Object.assign(I18N.en, {
   recentLocation: "Latest selected location", reopenLocation: "Find nearby stops ›",
   civic: "Independent experimental civic-tech project. Not affiliated with or endorsed by Bangkok Metropolitan Administration. Camera content remains on the official BMA Traffic service.",
   nearestCamera: "Nearest traffic camera", upcomingCamera: "Upcoming traffic camera", fromBus: "m from bus",
-  onRoute: "on route", nearRoute: "near route", cameraId: "Current camera ID", openCamera: "Open camera on BMA ↗",
+  onRoute: "on route", nearRoute: "near route", cameraId: "Current camera ID", openCamera: "Open verified camera on BMA ↗",
   previousCamera: "‹ Previous camera", nextCamera: "Next camera ›", showPins: "🗺️ Show bus + camera pins",
   cameraAvailable: "🎥 Traffic camera available", cameraAvailableHelp: "Tap to view the nearest camera for this bus ↓",
-  cameraNote: "BUS287 opens or reuses the BMA camera session in the background and shows validated frames here. No popup is needed.",
+  cameraNote: "BUS287 validates the preview first. The button opens this same camera in a BMA Traffic popup.",
   liveCameraStatus: "Live BMA camera · bus tracking stays independent",
   cameraSourceUnavailable: "The BMA camera is slow or unavailable; bus tracking is still live.",
   switchingCamera: "That camera is unavailable. Trying the next route camera…",
@@ -59,16 +61,18 @@ Object.assign(I18N.en, {
 Object.assign(I18N.th, {
   projectStoryTitle: "Bus-287 เกิดขึ้นเพื่ออะไร?",
   projectStoryText: "Bus-287 เกิดจากปัญหาที่ข้อมูล GPS บางครั้งแสดงเลขสายไม่ตรงกับรถที่วิ่งมาจริง ระบบจึงเชื่อมตำแหน่งรถกับกล้องจราจรใกล้เคียง เพื่อช่วยดูว่ารถผ่านกล้องแล้วหรือยัง สังเกตลักษณะรถ และใช้ภาพเป็นข้อมูลประกอบว่าเลขสายอาจคลาดเคลื่อนหรือไม่ แม้ไม่ได้เจอปัญหานี้ ก็เปิดดูเพื่อติดตามรถหรือดูสภาพการเดินทางได้เช่นกัน",
-  preflightTitle: "ตรวจสอบว่ากล้องใช้งานได้จริง",
-  preflightIntro: "ก่อนเข้าใช้งาน BUS287 ระบบต้องโหลดภาพจริงที่ไม่ใช่ภาพว่างจากกล้อง BMA ให้สำเร็จ การตรวจสอบเกิดขึ้นภายใน BUS287 โดยไม่เปิดป๊อปอัปหรือพาออกไปเว็บไซต์อื่น",
+  preflightTitle: "ตรวจสอบกล้องก่อนเปิด",
+  preflightIntro: "BUS287 จะตรวจสอบก่อนว่าได้รับภาพจริงที่ไม่ใช่ภาพว่างจากกล้อง BMA เมื่อพบกล้องที่ใช้งานได้ ปุ่มจะเปิดกล้องตัวเดียวกันนั้นในป๊อปอัปของ BMA Traffic",
   preflightStep1: "BUS287 สร้างหรือใช้เซสชันกล้อง BMA ที่ยังใช้งานได้อยู่เบื้องหลัง",
-  preflightStep2: "ระบบจะเข้าหน้ากล้องเมื่อจำเป็นเท่านั้น แล้วขอภาพล่าสุด",
-  preflightStep3: "ปุ่มเข้าใช้งานจะเปิดเมื่อโหลดภาพจากกล้องจริงสำเร็จเท่านั้น",
-  cameraChecking: "กำลังตรวจสอบภาพสดจากกล้อง BMA…", cameraVerified: "ตรวจสอบกล้องสดสำเร็จ เข้าใช้งาน BUS287 ได้แล้ว",
+  preflightStep2: "หากกล้องแรกไม่ส่งภาพที่ถูกต้อง ระบบจะลองกล้องอื่นให้อัตโนมัติ",
+  preflightStep3: "เปิดป๊อปอัปของกล้องที่ตรวจสอบแล้ว จากนั้นยืนยันว่ากล้องทำงานในเบราว์เซอร์ของคุณ",
+  cameraChecking: "กำลังตรวจสอบภาพสดจากกล้อง BMA…", cameraVerified: "ตรวจสอบภาพสดสำเร็จ เปิดกล้องนี้บน BMA Traffic ได้แล้ว",
   cameraTryingNext: "กล้องนี้ไม่พร้อมใช้งาน กำลังลองกล้อง BMA ตัวอื่น…",
   cameraCheckFailed: "ขณะนี้ยังตรวจสอบกล้องไม่ได้ กรุณาลองอีกครั้ง", retryCamera: "ลองตรวจสอบกล้องอีกครั้ง",
-  cameraVerifiedContinue: "ตรวจสอบกล้องแล้ว — เข้าใช้ BUS287", preflightCameraAlt: "ภาพสดที่ตรวจสอบแล้วจากกล้องจราจร BMA",
-  preflightDisclaimer: "BUS287 จะไม่ยอมรับภาพว่างจาก BMA แต่กล้องอาจหยุดให้บริการภายหลังการตรวจสอบได้",
+  openVerifiedBma: "เปิดกล้อง BMA ที่ตรวจสอบแล้ว ↗", bmaWorkedQuestion: "กล้องที่ตรวจสอบแล้วเปิดบน BMA Traffic ได้ถูกต้องหรือไม่?",
+  bmaYes: "ใช่ กล้องใช้งานได้ — เข้าใช้ BUS287", bmaNo: "ไม่ — ตรวจสอบกล้องตัวอื่น",
+  preflightCameraAlt: "ภาพสดที่ตรวจสอบแล้วจากกล้องจราจร BMA",
+  preflightDisclaimer: "BUS287 จะไม่ยอมรับภาพว่าง แต่ BMA Traffic จะเปิดเป็นป๊อปอัป HTTP ภายนอกและอาจทำงานต่างกันในแต่ละเบราว์เซอร์",
   resetLabel: "↻ รีเซ็ต", twoNearest: "รถที่กำลังวิ่งใกล้ที่สุด 2 คัน", allBuses: "รถทั้งหมด",
   noGps: "ขณะนี้ไม่มีรถส่งข้อมูล GPS", noApproaching: "ไม่มีข้อมูลประมาณเวลาของรถที่กำลังเข้าใกล้",
   noLiveTrip: "ไม่มีรถที่กำลังวิ่งในเที่ยวนี้", loadingArrival: "กำลังโหลดเวลาถึงโดยประมาณ…",
@@ -87,10 +91,10 @@ Object.assign(I18N.th, {
   recentLocation: "ตำแหน่งที่เลือกล่าสุด", reopenLocation: "ค้นหาป้ายใกล้เคียง ›",
   civic: "โครงการทดลองเทคโนโลยีเพื่อสังคมอิสระ ไม่ได้เป็นส่วนหนึ่งหรือได้รับการรับรองจากกรุงเทพมหานคร เนื้อหากล้องยังคงอยู่บนบริการ BMA Traffic อย่างเป็นทางการ",
   nearestCamera: "กล้องจราจรที่ใกล้ที่สุด", upcomingCamera: "กล้องจราจรข้างหน้า", fromBus: "ม. จากรถ",
-  onRoute: "อยู่บนเส้นทาง", nearRoute: "อยู่ใกล้เส้นทาง", cameraId: "รหัสกล้องปัจจุบัน", openCamera: "เปิดกล้องบน BMA ↗",
+  onRoute: "อยู่บนเส้นทาง", nearRoute: "อยู่ใกล้เส้นทาง", cameraId: "รหัสกล้องปัจจุบัน", openCamera: "เปิดกล้องที่ตรวจสอบแล้วบน BMA ↗",
   previousCamera: "‹ กล้องก่อนหน้า", nextCamera: "กล้องถัดไป ›", showPins: "🗺️ แสดงตำแหน่งรถและกล้อง",
   cameraAvailable: "🎥 มีกล้องจราจร", cameraAvailableHelp: "แตะเพื่อดูกล้องที่ใกล้รถคันนี้ที่สุด ↓",
-  cameraNote: "BUS287 จะเปิดหรือใช้เซสชันกล้อง BMA เดิมที่ยังใช้งานได้อยู่เบื้องหลัง แล้วแสดงภาพที่ตรวจสอบแล้วที่นี่โดยไม่เปิดป๊อปอัป",
+  cameraNote: "BUS287 ตรวจสอบภาพตัวอย่างก่อน ปุ่มจะเปิดกล้องตัวเดียวกันนี้ในป๊อปอัปของ BMA Traffic",
   liveCameraStatus: "กล้อง BMA สด · การติดตามรถยังทำงานแยกกัน",
   cameraSourceUnavailable: "กล้อง BMA ตอบสนองช้าหรือไม่พร้อมใช้งาน แต่การติดตามรถยังทำงานอยู่",
   switchingCamera: "กล้องนี้ไม่พร้อมใช้งาน กำลังลองกล้องถัดไปบนเส้นทาง…",
@@ -1019,6 +1023,8 @@ async function selectBus(busId, options = {}) {
           <img id="cam-img" data-camera-id="${esc(camId)}" alt="${esc(d.nearestCamera.name_th || d.nearestCamera.name_en || d.nearestCamera.id)}">
         </div>
         <small class="cam-status" id="cam-status">${t("cameraChecking")}</small>
+        <a id="camera-link" class="btn btn-ghost btn-direct-camera"
+          href="${esc(d.nearestCamera.feed_url)}" target="_blank" rel="noopener">${t("openCamera")}</a>
         <div class="camera-site-note">ℹ️ ${t("cameraNote")}</div>
         <div class="btn-row camera-nav">
           <button class="btn btn-ghost" id="btn-prev-camera" ${state.cameraIndexOffset <= 0 ? "disabled" : ""}>${t("previousCamera")}</button>
@@ -1489,22 +1495,34 @@ function requireCameraPreflight() {
   const image = $("#preflight-camera-image");
   const status = $("#preflight-camera-status");
   const retry = $("#btn-retry-camera");
+  const openCamera = $("#btn-test-bma");
+  const result = $("#preflight-result");
   const enter = $("#btn-bma-worked");
+  const failed = $("#btn-bma-failed");
   let verificationAttempt = 0;
+  let verifiedCameraIndex = -1;
   overlay.classList.remove("hidden");
   return new Promise((resolve) => {
     const setStatus = (key) => {
       status.dataset.i18n = key;
       status.textContent = t(key);
     };
-    const verify = () => {
+    const verify = (startIndex = 0) => {
       const attempt = ++verificationAttempt;
-      let cameraIndex = 0;
-      enter.disabled = true;
+      let cameraIndex = startIndex;
+      verifiedCameraIndex = -1;
+      openCamera.removeAttribute("href");
+      openCamera.setAttribute("aria-disabled", "true");
+      result.classList.add("hidden");
       retry.classList.add("hidden");
       image.classList.add("hidden");
       image.removeAttribute("src");
       setStatus("cameraChecking");
+      if (cameraIndex >= PREFLIGHT_CAMERA_IDS.length) {
+        setStatus("cameraCheckFailed");
+        retry.classList.remove("hidden");
+        return;
+      }
       const tryCamera = () => {
         if (attempt !== verificationAttempt) return;
         const cameraId = PREFLIGHT_CAMERA_IDS[cameraIndex];
@@ -1516,7 +1534,9 @@ function requireCameraPreflight() {
           image.classList.remove("hidden");
           setStatus("cameraVerified");
           status.classList.add("verified");
-          enter.disabled = false;
+          verifiedCameraIndex = cameraIndex;
+          openCamera.href = `http://www.bmatraffic.com/PlayVideo.aspx?ID=${encodeURIComponent(cameraId)}`;
+          openCamera.setAttribute("aria-disabled", "false");
         };
         image.onerror = () => {
           if (attempt !== verificationAttempt) return;
@@ -1537,15 +1557,24 @@ function requireCameraPreflight() {
       tryCamera();
     };
     const finish = () => {
-      if (enter.disabled) return;
+      if (verifiedCameraIndex < 0) return;
       try {
         sessionStorage.setItem(BMA_PREFLIGHT_KEY, JSON.stringify({ cameraVerified: true, cameraId: image.dataset.cameraId, checkedAt: Date.now() }));
       } catch { /* private browsing may not retain the verification */ }
       overlay.classList.add("hidden");
       resolve();
     };
-    retry.onclick = verify;
+    openCamera.onclick = (event) => {
+      if (openCamera.getAttribute("aria-disabled") === "true") {
+        event.preventDefault();
+        return;
+      }
+      result.classList.remove("hidden");
+      result.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    };
+    retry.onclick = () => verify(0);
     enter.onclick = finish;
+    failed.onclick = () => verify(verifiedCameraIndex + 1);
     verify();
   });
 }

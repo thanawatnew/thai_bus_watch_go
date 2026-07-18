@@ -58,12 +58,12 @@
       <h2 data-i18n="projectStoryTitle">Bus-287 เกิดขึ้นเพื่ออะไร?</h2>
       <p data-i18n="projectStoryText">Bus-287 เกิดจากปัญหาที่ข้อมูล GPS บางครั้งแสดงเลขสายไม่ตรงกับรถที่วิ่งมาจริง ระบบจึงเชื่อมตำแหน่งรถกับกล้องจราจรใกล้เคียง เพื่อช่วยดูว่ารถผ่านกล้องแล้วหรือยัง สังเกตลักษณะรถ และใช้ภาพเป็นข้อมูลประกอบว่าเลขสายอาจคลาดเคลื่อนหรือไม่ แม้ไม่ได้เจอปัญหานี้ ก็เปิดดูเพื่อติดตามรถหรือดูสภาพการเดินทางได้เช่นกัน</p>
     </div>
-    <h1 id="preflight-title" data-i18n="preflightTitle">Test BMA camera access</h1>
+    <h1 id="preflight-title" data-i18n="preflightTitle">Verify a camera before opening it</h1>
     <p data-i18n="preflightIntro">BMA Traffic is a separate, HTTP-only website. Its availability and content are controlled by BMA Traffic, not Bus-287.</p>
     <ol class="preflight-steps">
       <li data-i18n="preflightStep1">BUS287 creates or reuses a BMA camera session in the background.</li>
-      <li data-i18n="preflightStep2">It reaches the camera page only when needed, then requests a fresh frame.</li>
-      <li data-i18n="preflightStep3">The Continue button unlocks only after a real camera image loads.</li>
+      <li data-i18n="preflightStep2">It tries another camera automatically if the first camera does not return a valid frame.</li>
+      <li data-i18n="preflightStep3">Open the verified camera popup, then confirm whether it works in your browser.</li>
     </ol>
     <div class="preflight-camera-check">
       <div id="preflight-camera-status" class="preflight-camera-status" role="status" data-i18n="cameraChecking">Checking for a live BMA camera image…</div>
@@ -72,7 +72,12 @@
       </div>
       <button class="btn btn-ghost hidden" id="btn-retry-camera" data-i18n="retryCamera">Retry camera check</button>
     </div>
-    <button class="btn" id="btn-bma-worked" disabled data-i18n="cameraVerifiedContinue">Camera verified — enter BUS287</button>
+    <a class="btn" id="btn-test-bma" aria-disabled="true" target="_blank" rel="noopener" data-i18n="openVerifiedBma">Open verified BMA camera ↗</a>
+    <div id="preflight-result" class="hidden">
+      <p><b data-i18n="bmaWorkedQuestion">Did this verified camera open correctly in BMA Traffic?</b></p>
+      <button class="btn" id="btn-bma-worked" data-i18n="bmaYes">Yes, camera works — enter BUS287</button>
+      <button class="btn btn-ghost" id="btn-bma-failed" data-i18n="bmaNo">No — verify a different camera</button>
+    </div>
     <small data-i18n="preflightDisclaimer">By continuing, you understand that external camera access may be insecure, unavailable, or behave differently in each browser.</small>
     <div class="preflight-usage">
       <h2 data-i18n="usageTitle">How to use Bus-287</h2>
