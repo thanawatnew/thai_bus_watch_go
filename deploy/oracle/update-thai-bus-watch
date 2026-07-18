@@ -27,6 +27,8 @@ docker run -d \
   --name buswatch \
   --restart unless-stopped \
   --network buswatch-net \
+  --dns 1.1.1.1 \
+  --dns 8.8.8.8 \
   -e PORT=8080 \
   -e SELF_URL="https://$domain" \
   -e BMA_CAMERA_RELAY_URL="$camera_relay_url" \
