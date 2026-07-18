@@ -293,6 +293,24 @@ input[type=text]:focus { border-color: #2f6fed; }
   padding: 22px; border: 1px solid rgba(255,255,255,.12); border-radius: 18px;
   background: #171b20; box-shadow: 0 16px 50px rgba(0,0,0,.6);
 }
+.preflight-language {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin: -4px 0 18px; padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
+.preflight-language > span { color: #cbd1d8; font-size: 13px; font-weight: 700; }
+.preflight-language-options { display: flex; gap: 6px; }
+.preflight-language-options button {
+  min-height: 40px; padding: 8px 13px; border-radius: 10px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,.14); background: #262c33;
+  color: #d7dde3; font: inherit; font-size: 14px; font-weight: 700;
+}
+.preflight-language-options button.selected {
+  border-color: #7fb8ff; background: #2f6fed; color: #fff;
+}
+.preflight-language-options button:focus-visible {
+  outline: 3px solid #7fb8ff; outline-offset: 2px;
+}
 .preflight-card h1 { margin: 0 0 10px; font-size: 21px; }
 .browser-warning {
   margin: 12px 0; padding: 12px; border-radius: 12px;

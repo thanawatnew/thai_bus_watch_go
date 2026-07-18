@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -22,8 +22,8 @@
   <button id="btn-home" title="Home">🚌</button>
   <div id="topbar-title">Thai Bus Watch <small class="topbar-version" id="topbar-version"></small></div>
   <select id="language-select" title="Language" aria-label="Language">
+    <option value="th" selected>ไทย</option>
     <option value="en">EN</option>
-    <option value="th">ไทย</option>
   </select>
   <button id="btn-reset" class="topbar-reset" type="button" title="Reset and start over" aria-label="Reset setup and start over" data-i18n="resetLabel">↻ Reset</button>
   <button id="btn-about" class="topbar-icon" type="button" title="About Bus-287" aria-label="About Bus-287">?</button>
@@ -47,6 +47,13 @@
 
 <div id="camera-preflight" class="preflight-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="preflight-title">
   <div class="preflight-card">
+    <div class="preflight-language" role="group" aria-label="เลือกภาษา / Choose language">
+      <span>ภาษา / Language</span>
+      <div class="preflight-language-options">
+        <button type="button" data-language-option="th" aria-pressed="true">ไทย</button>
+        <button type="button" data-language-option="en" aria-pressed="false">English</button>
+      </div>
+    </div>
     <h1 id="preflight-title" data-i18n="preflightTitle">Test BMA camera access</h1>
     <div id="iphone-browser-warning" class="browser-warning hidden">
       <b data-i18n="iphoneTitle">iPhone users: Firefox is recommended.</b>
