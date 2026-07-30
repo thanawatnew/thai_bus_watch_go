@@ -3,12 +3,12 @@
 
 const BANGKOK = [13.7563, 100.5018];
 const REFRESH_MS = 5000;
-const APP_VERSION = "0.6.7";
+const APP_VERSION = "0.6.8";
 const BMA_PREFLIGHT_KEY = "bmaCameraPreflightV4";
 const PREFLIGHT_CAMERA_IDS = ["1443", "603", "1456", "1286", "1258"];
 const I18N = {
-  en: { step:"Step", open:"Open", hide:"Hide", location:"Choose a location", locationHelp:"Use your location or tap your position on the map.", stop:"Choose a nearby stop", stopHelp:"Tap a stop to see its live routes and arrivals.", route:"Choose a bus route", routeHelp:"Tap the route you want to follow.", routeStop:"Choose a route stop", routeStopHelp:"Tap the stop where you want to meet the bus.", bus:"Choose a live bus", busHelp:"Tap a bus below to open its live details.", view:"View bus and camera", viewHelp:"Review the live bus details, then open the available traffic camera.", reset:"Start over from Step 1 and run the BMA camera test again? Your recent routes will be kept.", preflightTitle:"Test BMA camera access", iphoneTitle:"iPhone users: Firefox is recommended.", iphoneText:"Safari may not open BMA Traffic's external HTTP-only camera page reliably. Open Bus-287 in Firefox before running this test.", preflightIntro:"BMA Traffic is a separate, HTTP-only website. Its availability and content are controlled by BMA Traffic, not Bus-287.", preflightStep1:"1. Open the test: tap the blue BMA camera button below.", preflightStep2:"2. Allow the external page only if you accept opening BMA's HTTP website.", preflightStep3:"3. Check whether the BMA camera content appears.", preflightStep4:"4. Return to this Bus-287 browser tab.", preflightStep5:"5. Report Yes or No below to enter Bus Watch.", openBmaTest:"🎥 Open BMA camera test ↗", bmaWorkedQuestion:"Did the BMA camera page open correctly?", bmaYes:"Yes, camera worked — continue", bmaNo:"No — continue with bus tracking only", preflightDisclaimer:"By continuing, you understand that external camera access may be insecure, unavailable, or behave differently in each browser." },
-  th: { step:"ขั้นตอน", open:"เปิด", hide:"ซ่อน", location:"เลือกตำแหน่ง", locationHelp:"ใช้ตำแหน่งปัจจุบันหรือแตะตำแหน่งบนแผนที่", stop:"เลือกป้ายใกล้เคียง", stopHelp:"แตะป้ายเพื่อดูสายรถและเวลาถึงแบบสด", route:"เลือกสายรถโดยสาร", routeHelp:"แตะสายรถที่ต้องการติดตาม", routeStop:"เลือกป้ายในเส้นทาง", routeStopHelp:"แตะป้ายที่คุณต้องการขึ้นรถ", bus:"เลือกรถที่กำลังวิ่ง", busHelp:"แตะรถด้านล่างเพื่อดูรายละเอียดสด", view:"ดูรถและกล้อง", viewHelp:"ดูรายละเอียดรถ แล้วเปิดกล้องจราจรที่มีอยู่", reset:"เริ่มใหม่จากขั้นตอนที่ 1 และทดสอบกล้อง BMA อีกครั้งหรือไม่? รายการเส้นทางล่าสุดจะยังอยู่", preflightTitle:"ทดสอบการเข้าถึงกล้อง BMA", iphoneTitle:"ผู้ใช้ iPhone: แนะนำ Firefox", iphoneText:"Safari อาจเปิดหน้ากล้อง HTTP ของ BMA ได้ไม่สมบูรณ์ กรุณาใช้ Firefox", preflightIntro:"BMA Traffic เป็นเว็บไซต์ HTTP ภายนอก ซึ่งไม่ได้ควบคุมโดย Bus-287", preflightStep1:"1. แตะปุ่มสีน้ำเงินเพื่อเปิดหน้าทดสอบกล้อง BMA", preflightStep2:"2. อนุญาตหน้าเว็บภายนอกเมื่อคุณยอมรับการเปิดเว็บไซต์ HTTP", preflightStep3:"3. ตรวจสอบว่าภาพจากกล้อง BMA แสดงหรือไม่", preflightStep4:"4. กลับมายังแท็บ Bus-287", preflightStep5:"5. ตอบว่าใช่หรือไม่ใช่เพื่อเข้าใช้งาน", openBmaTest:"🎥 เปิดหน้าทดสอบกล้อง BMA ↗", bmaWorkedQuestion:"หน้ากล้อง BMA เปิดได้ถูกต้องหรือไม่?", bmaYes:"ใช่ กล้องใช้งานได้ — ต่อไป", bmaNo:"ไม่ — ใช้เฉพาะการติดตามรถ", preflightDisclaimer:"เมื่อดำเนินการต่อ คุณเข้าใจว่ากล้องภายนอกอาจไม่ปลอดภัยหรือไม่พร้อมใช้งาน" }
+  en: { step:"Step", open:"Open", hide:"Hide", location:"Choose a location", locationHelp:"Use your location or tap your position on the map.", stop:"Choose a nearby stop", stopHelp:"Tap a stop to see its live routes and arrivals.", route:"Choose a bus route", routeHelp:"Tap the route you want to follow.", routeStop:"Choose a route stop", routeStopHelp:"Tap the stop where you want to meet the bus.", bus:"Choose a live bus", busHelp:"Tap a bus below to open its live details.", view:"View bus and camera", viewHelp:"Review the live bus details, then open the available traffic camera.", reset:"Start over from Step 1? Your recent routes will be kept.", preflightTitle:"Test BMA camera access", iphoneTitle:"iPhone users: Firefox is recommended.", iphoneText:"Safari may not open BMA Traffic's external HTTP-only camera page reliably. Open Bus-287 in Firefox before running this test.", preflightIntro:"BMA Traffic is a separate, HTTP-only website. Its availability and content are controlled by BMA Traffic, not Bus-287.", preflightStep1:"1. Open the test: tap the blue BMA camera button below.", preflightStep2:"2. Allow the external page only if you accept opening BMA's HTTP website.", preflightStep3:"3. Check whether the BMA camera content appears.", preflightStep4:"4. Return to this Bus-287 browser tab.", preflightStep5:"5. Report Yes or No below to enter Bus Watch.", openBmaTest:"🎥 Open BMA camera test ↗", bmaWorkedQuestion:"Did the BMA camera page open correctly?", bmaYes:"Yes, camera worked — continue", bmaNo:"No — continue with bus tracking only", preflightDisclaimer:"By continuing, you understand that external camera access may be insecure, unavailable, or behave differently in each browser." },
+  th: { step:"ขั้นตอน", open:"เปิด", hide:"ซ่อน", location:"เลือกตำแหน่ง", locationHelp:"ใช้ตำแหน่งปัจจุบันหรือแตะตำแหน่งบนแผนที่", stop:"เลือกป้ายใกล้เคียง", stopHelp:"แตะป้ายเพื่อดูสายรถและเวลาถึงแบบสด", route:"เลือกสายรถโดยสาร", routeHelp:"แตะสายรถที่ต้องการติดตาม", routeStop:"เลือกป้ายในเส้นทาง", routeStopHelp:"แตะป้ายที่คุณต้องการขึ้นรถ", bus:"เลือกรถที่กำลังวิ่ง", busHelp:"แตะรถด้านล่างเพื่อดูรายละเอียดสด", view:"ดูรถและกล้อง", viewHelp:"ดูรายละเอียดรถ แล้วเปิดกล้องจราจรที่มีอยู่", reset:"เริ่มใหม่จากขั้นตอนที่ 1 หรือไม่? รายการเส้นทางล่าสุดจะยังอยู่", preflightTitle:"ทดสอบการเข้าถึงกล้อง BMA", iphoneTitle:"ผู้ใช้ iPhone: แนะนำ Firefox", iphoneText:"Safari อาจเปิดหน้ากล้อง HTTP ของ BMA ได้ไม่สมบูรณ์ กรุณาใช้ Firefox", preflightIntro:"BMA Traffic เป็นเว็บไซต์ HTTP ภายนอก ซึ่งไม่ได้ควบคุมโดย Bus-287", preflightStep1:"1. แตะปุ่มสีน้ำเงินเพื่อเปิดหน้าทดสอบกล้อง BMA", preflightStep2:"2. อนุญาตหน้าเว็บภายนอกเมื่อคุณยอมรับการเปิดเว็บไซต์ HTTP", preflightStep3:"3. ตรวจสอบว่าภาพจากกล้อง BMA แสดงหรือไม่", preflightStep4:"4. กลับมายังแท็บ Bus-287", preflightStep5:"5. ตอบว่าใช่หรือไม่ใช่เพื่อเข้าใช้งาน", openBmaTest:"🎥 เปิดหน้าทดสอบกล้อง BMA ↗", bmaWorkedQuestion:"หน้ากล้อง BMA เปิดได้ถูกต้องหรือไม่?", bmaYes:"ใช่ กล้องใช้งานได้ — ต่อไป", bmaNo:"ไม่ — ใช้เฉพาะการติดตามรถ", preflightDisclaimer:"เมื่อดำเนินการต่อ คุณเข้าใจว่ากล้องภายนอกอาจไม่ปลอดภัยหรือไม่พร้อมใช้งาน" }
 };
 Object.assign(I18N.en, {
   projectStoryTitle: "Why Bus-287?",
@@ -421,6 +421,12 @@ async function requirePriorityAccess() {
 
 /* ---------- home view ---------- */
 function renderHome() {
+  const url = new URL(window.location.href);
+  if (url.searchParams.has("trip") || url.searchParams.has("bus")) {
+    url.searchParams.delete("trip");
+    url.searchParams.delete("bus");
+    history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  }
   setGuideStep(1, t("location"));
   state.view = "home";
   stopRefresh();
@@ -694,6 +700,11 @@ map.on("click", (e) => {
 
 /* ---------- trip view ---------- */
 async function openTrip(tripId, preferredStopId = null, preferredBusId = null) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("trip", String(tripId));
+  if (preferredBusId) url.searchParams.set("bus", String(preferredBusId).split(" ")[0]);
+  else url.searchParams.delete("bus");
+  history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
   state.view = "trip";
   state.tripId = String(tripId);
   state.selectedBus = null;
@@ -713,8 +724,12 @@ async function openTrip(tripId, preferredStopId = null, preferredBusId = null) {
       : null;
     if (preferredStop) selectStop(preferredStop);
     else renderTripSheet();
-    if (preferredBusId && (trip.gpsList || []).some((bus) => bus.id === preferredBusId)) {
-      await selectBus(preferredBusId, { userAction: true });
+    const preferredBus = preferredBusId
+      ? (trip.gpsList || []).find((bus) =>
+        bus.id === preferredBusId || bus.id.split(" ")[0] === String(preferredBusId).split(" ")[0])
+      : null;
+    if (preferredBus) {
+      await selectBus(preferredBus.id, { userAction: true });
     }
     startRefresh();
   } catch (e) {
@@ -1364,7 +1379,7 @@ $("#btn-reset").onclick = () => {
   sessionStorage.removeItem(BMA_PREFLIGHT_KEY);
   localStorage.removeItem("lastStopSelection");
   localStorage.removeItem("bmaCameraNoticeSeen");
-  location.reload();
+  location.href = location.pathname;
 };
 $("#language-select").onchange = (event) => {
   selectLanguage(event.target.value);
@@ -1392,7 +1407,12 @@ $("#btn-about").onclick = () => {
   `);
   $("#btn-retest-camera").onclick = () => {
     sessionStorage.removeItem(BMA_PREFLIGHT_KEY);
-    location.reload();
+    requireCameraPreflight(true).then(() => {
+      if (state.view === "trip" && state.trip) {
+        if (state.selectedStop) selectStop(state.selectedStop);
+        else renderTripSheet();
+      } else renderHome();
+    });
   };
   $("#btn-about-close").onclick = () => {
     if (state.view === "trip" && state.trip) {
@@ -1461,15 +1481,20 @@ $("#alert-use-me").onclick = async () => {
 
 async function init() {
   applyLanguage();
-  await requireCameraPreflight();
   if (!await requirePriorityAccess()) return;
   // Wait for the first status response before drawing the home sheet. Without
   // this, the default "Telegram off" state flashes and remains in the sheet
   // even after the status pill has updated.
   await refreshTelegram();
-  const remembered = getLastStopSelection();
-  if (remembered?.stopId) await reopenLastStop();
-  else renderHome();
+  const params = new URLSearchParams(window.location.search);
+  const linkedTrip = params.get("trip");
+  const linkedBus = params.get("bus");
+  if (/^\d+$/.test(linkedTrip || "")) await openTrip(linkedTrip, null, linkedBus);
+  else {
+    const remembered = getLastStopSelection();
+    if (remembered?.stopId) await reopenLastStop();
+    else renderHome();
+  }
   refreshWatches();
   setInterval(refreshTelegram, 20000);
   state.watchTimer = setInterval(refreshWatches, 20000);
@@ -1479,9 +1504,9 @@ async function init() {
   }
 }
 
-function requireCameraPreflight() {
+function requireCameraPreflight(force = false) {
   try {
-    if (sessionStorage.getItem(BMA_PREFLIGHT_KEY)) return Promise.resolve();
+    if (!force && sessionStorage.getItem(BMA_PREFLIGHT_KEY)) return Promise.resolve();
   } catch { /* continue with the per-session check */ }
   const overlay = $("#camera-preflight");
   const status = $("#preflight-camera-status");
