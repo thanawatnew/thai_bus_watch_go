@@ -24,6 +24,94 @@ type Server struct {
 	access  *AccessGate
 }
 
+const (
+	cameraCandidateRadiusM = 5000
+	maxCameraCandidates    = 40
+)
+
+type busCameraCandidate struct {
+	Camera    Camera  `json:"camera"`
+	DistanceM float64 `json:"distanceM"`
+	Ahead     bool    `json:"ahead"`
+	OnRoute   bool    `json:"onRoute"`
+}
+
+// cameraCandidatesForBus deliberately uses the complete BMA catalog instead
+// of only cameras intersecting the route shape. Route matching is useful as a
+// hint, but GPS shapes and camera locations can be wrong or stale. Keeping
+// nearby off-route cameras in the response lets the person watching the bus
+// choose the camera that is actually useful.
+func cameraCandidatesForBus(busLat, busLon, heading float64, shape []LatLon, cameras []Camera, preferredID string) []busCameraCandidate {
+	if len(cameras) == 0 {
+		return []busCameraCandidate{}
+	}
+
+	routeIDs := make(map[string]bool)
+	for _, camera := range CamerasNearShape(cameras, shape, 120) {
+		routeIDs[camera.ID] = true
+	}
+
+	candidates := make([]busCameraCandidate, 0, len(cameras))
+	for _, camera := range cameras {
+		distance := HaversineMeters(busLat, busLon, camera.Lat, camera.Lon)
+		if distance > cameraCandidateRadiusM {
+			continue
+		}
+		candidates = append(candidates, busCameraCandidate{
+			Camera:    camera,
+			DistanceM: math.Round(distance),
+			Ahead:     cameraIsAhead(busLat, busLon, heading, camera, distance),
+			OnRoute:   routeIDs[camera.ID],
+		})
+	}
+
+	// The automatic fallback can be farther than the manual-picker radius.
+	// Always keep that camera available as an explicit option too.
+	preferredFound := false
+	for i := range candidates {
+		if candidates[i].Camera.ID == preferredID {
+			preferredFound = true
+			break
+		}
+	}
+	if !preferredFound && preferredID != "" {
+		for _, camera := range cameras {
+			if camera.ID != preferredID {
+				continue
+			}
+			distance := HaversineMeters(busLat, busLon, camera.Lat, camera.Lon)
+			candidates = append(candidates, busCameraCandidate{
+				Camera:    camera,
+				DistanceM: math.Round(distance),
+				Ahead:     cameraIsAhead(busLat, busLon, heading, camera, distance),
+				OnRoute:   routeIDs[camera.ID],
+			})
+			preferredFound = true
+			break
+		}
+	}
+
+	sort.SliceStable(candidates, func(i, j int) bool {
+		if candidates[i].Camera.ID == preferredID {
+			return true
+		}
+		if candidates[j].Camera.ID == preferredID {
+			return false
+		}
+		if candidates[i].Ahead != candidates[j].Ahead {
+			return candidates[i].Ahead
+		}
+		if candidates[i].DistanceM != candidates[j].DistanceM {
+			return candidates[i].DistanceM < candidates[j].DistanceM
+		}
+		return candidates[i].Camera.ID < candidates[j].Camera.ID
+	})
+	if len(candidates) > maxCameraCandidates {
+		candidates = candidates[:maxCameraCandidates]
+	}
+	return candidates
+}
+
 func NewServer(tg *Telegram) *Server {
 	return &Server{tg: tg, watches: NewWatchManager(tg), access: NewAccessGate()}
 }
@@ -140,7 +228,8 @@ func (s *Server) handleArrivals(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusNotFound, map[string]string{"error": "trip does not serve this stop"})
 }
 
-// handleBus returns one bus's live position plus the nearest BMA traffic camera.
+// handleBus returns one bus's live position plus nearby BMA traffic cameras.
+// Camera information is best-effort; it must never hide the live bus.
 func (s *Server) handleBus(w http.ResponseWriter, r *http.Request) {
 	tripID := strings.TrimSpace(r.URL.Query().Get("trip"))
 	busID := strings.TrimSpace(r.URL.Query().Get("bus"))
@@ -165,9 +254,10 @@ func (s *Server) handleBus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := map[string]any{
-		"bus":       bus,
-		"routeName": trip.RouteShortName,
-		"headsign":  trip.TripHeadsign,
+		"bus":              bus,
+		"routeName":        trip.RouteShortName,
+		"headsign":         trip.TripHeadsign,
+		"cameraCandidates": []busCameraCandidate{},
 	}
 
 	cameras := CachedBMACameras()
@@ -175,34 +265,21 @@ func (s *Server) handleBus(w http.ResponseWriter, r *http.Request) {
 		RefreshBMACamerasAsync()
 	}
 	if len(cameras) > 0 {
-		routeCameras := CamerasNearShape(cameras, trip.ShapeGeom, 120)
-		if len(routeCameras) == 0 {
-			routeCameras = cameras
-		}
 		heading := float64(bus.SnappedHeading)
 		if heading == 0 {
 			heading = float64(bus.Heading)
 		}
-		cam, dist, ahead := UpcomingCamera(bus.BestLat(), bus.BestLon(), heading, routeCameras)
+		cam, dist, ahead := UpcomingCamera(bus.BestLat(), bus.BestLon(), heading, cameras)
 		if !ahead {
-			cam, dist = NearestCamera(bus.BestLat(), bus.BestLon(), routeCameras)
+			cam, dist = NearestCamera(bus.BestLat(), bus.BestLon(), cameras)
 		}
 		resp["nearestCamera"] = cam
 		resp["cameraDistanceM"] = math.Round(dist)
 		resp["cameraSelection"] = map[bool]string{true: "ahead", false: "nearest"}[ahead]
 		resp["cameraOnRoute"] = len(CamerasNearShape([]Camera{cam}, trip.ShapeGeom, 120)) == 1
-		type cameraCandidate struct {
-			Camera    Camera  `json:"camera"`
-			DistanceM float64 `json:"distanceM"`
-		}
-		candidates := make([]cameraCandidate, 0)
-		for _, candidate := range routeCameras {
-			if c, d, ok := UpcomingCamera(bus.BestLat(), bus.BestLon(), heading, []Camera{candidate}); ok {
-				candidates = append(candidates, cameraCandidate{Camera: c, DistanceM: math.Round(d)})
-			}
-		}
-		sort.Slice(candidates, func(i, j int) bool { return candidates[i].DistanceM < candidates[j].DistanceM })
-		resp["cameraCandidates"] = candidates
+		resp["cameraCandidates"] = cameraCandidatesForBus(
+			bus.BestLat(), bus.BestLon(), heading, trip.ShapeGeom, cameras, cam.ID,
+		)
 	}
 
 	writeJSON(w, http.StatusOK, resp)

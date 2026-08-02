@@ -39,3 +39,20 @@ func TestCamerasNearShape(t *testing.T) {
 		t.Fatalf("route cameras = %+v", got)
 	}
 }
+
+func TestCameraCandidatesIncludeNearbyOffRouteCamera(t *testing.T) {
+	shape := []LatLon{{Lat: 13.7, Lon: 100.5}, {Lat: 13.71, Lon: 100.5}}
+	cameras := []Camera{
+		{ID: "route", Lat: 13.705, Lon: 100.5001},
+		{ID: "cross", Lat: 13.705, Lon: 100.503},
+	}
+	got := cameraCandidatesForBus(13.7, 100.5, 0, shape, cameras, "route")
+	if len(got) != 2 {
+		t.Fatalf("camera candidates = %+v; want both nearby cameras", got)
+	}
+	for _, candidate := range got {
+		if candidate.Camera.ID == "cross" && candidate.OnRoute {
+			t.Fatal("crossing-road camera was incorrectly marked on route")
+		}
+	}
+}

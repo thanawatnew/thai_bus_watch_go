@@ -49,15 +49,16 @@ Object.assign(I18N.en, {
   recentStop: "Latest selected bus stop", reopenStop: "Show live routes ›",
   recentLocation: "Latest selected location", reopenLocation: "Find nearby stops ›",
   civic: "Independent experimental civic-tech project. Not affiliated with or endorsed by Bangkok Metropolitan Administration. Camera content remains on the official BMA Traffic service.",
-  nearestCamera: "Nearest traffic camera", upcomingCamera: "Upcoming traffic camera", fromBus: "m from bus",
-  onRoute: "on route", nearRoute: "near route", cameraId: "Current camera ID", openCamera: "Open verified camera on BMA ↗",
+  nearestCamera: "Nearest traffic camera", upcomingCamera: "Upcoming traffic camera", selectedCamera: "Selected traffic camera", fromBus: "m from bus",
+  onRoute: "on route", nearRoute: "near route", notOnRoute: "not on this route", cameraId: "Current camera ID", openCamera: "Open verified camera on BMA ↗",
+  cameraChoice: "Choose a camera yourself", cameraChoiceHelp: "The suggested camera may be off this route. Pick another nearby camera if it is incorrect.",
   previousCamera: "‹ Previous camera", nextCamera: "Next camera ›", showPins: "🗺️ Show bus + camera pins",
   cameraAvailable: "🎥 Traffic camera available", cameraAvailableHelp: "Tap to verify it and open it on BMA Traffic ↓",
   cameraNote: "BUS287 checks camera availability in the background. No live camera image is embedded in BUS287; the button opens BMA Traffic externally.",
   cameraReadyExternal: "Camera verified in the background. Open it on BMA Traffic.",
   liveCameraStatus: "Live BMA camera · bus tracking stays independent",
   cameraSourceUnavailable: "The BMA camera is slow or unavailable; bus tracking is still live.",
-  switchingCamera: "That camera is unavailable. Trying the next route camera…",
+  switchingCamera: "That camera is unavailable. Trying the next nearby camera…",
   alertPlace: "🔔 Alert me when it reaches a place",
   bmaHelpTitle: "Camera did not open?", bmaHelpText: "Open the BMA camera page directly first, allow or start the camera feed there, then return to Bus-287 and run the test again.",
   openBmaAgain: "Open BMA camera page again ↗", continueWithoutCamera: "I understand — continue without cameras",
@@ -105,15 +106,16 @@ Object.assign(I18N.th, {
   recentStop: "ป้ายรถโดยสารที่เลือกล่าสุด", reopenStop: "ดูสายรถที่ให้บริการ ›",
   recentLocation: "ตำแหน่งที่เลือกล่าสุด", reopenLocation: "ค้นหาป้ายใกล้เคียง ›",
   civic: "โครงการทดลองเทคโนโลยีเพื่อสังคมอิสระ ไม่ได้เป็นส่วนหนึ่งหรือได้รับการรับรองจากกรุงเทพมหานคร เนื้อหากล้องยังคงอยู่บนบริการ BMA Traffic อย่างเป็นทางการ",
-  nearestCamera: "กล้องจราจรที่ใกล้ที่สุด", upcomingCamera: "กล้องจราจรข้างหน้า", fromBus: "ม. จากรถ",
-  onRoute: "อยู่บนเส้นทาง", nearRoute: "อยู่ใกล้เส้นทาง", cameraId: "รหัสกล้องปัจจุบัน", openCamera: "เปิดกล้องที่ตรวจสอบแล้วบน BMA ↗",
+  nearestCamera: "กล้องจราจรที่ใกล้ที่สุด", upcomingCamera: "กล้องจราจรข้างหน้า", selectedCamera: "กล้องจราจรที่เลือก", fromBus: "ม. จากรถ",
+  onRoute: "อยู่บนเส้นทาง", nearRoute: "อยู่ใกล้เส้นทาง", notOnRoute: "ไม่ได้อยู่บนเส้นทางนี้", cameraId: "รหัสกล้องปัจจุบัน", openCamera: "เปิดกล้องที่ตรวจสอบแล้วบน BMA ↗",
+  cameraChoice: "เลือกกล้องด้วยตนเอง", cameraChoiceHelp: "กล้องที่ระบบแนะนำอาจไม่ได้อยู่บนเส้นทางนี้ หากไม่ถูกต้องให้เลือกกล้องใกล้เคียงด้วยตนเอง",
   previousCamera: "‹ กล้องก่อนหน้า", nextCamera: "กล้องถัดไป ›", showPins: "🗺️ แสดงตำแหน่งรถและกล้อง",
   cameraAvailable: "🎥 มีกล้องจราจร", cameraAvailableHelp: "แตะเพื่อตรวจสอบและเปิดบน BMA Traffic ↓",
   cameraNote: "BUS287 ตรวจสอบว่ากล้องใช้งานได้อยู่เบื้องหลัง โดยไม่ฝังภาพสดใน BUS287 ปุ่มจะเปิดกล้องบน BMA Traffic ภายนอก",
   cameraReadyExternal: "ตรวจสอบกล้องเบื้องหลังแล้ว เปิดดูได้บน BMA Traffic",
   liveCameraStatus: "กล้อง BMA สด · การติดตามรถยังทำงานแยกกัน",
   cameraSourceUnavailable: "กล้อง BMA ตอบสนองช้าหรือไม่พร้อมใช้งาน แต่การติดตามรถยังทำงานอยู่",
-  switchingCamera: "กล้องนี้ไม่พร้อมใช้งาน กำลังลองกล้องถัดไปบนเส้นทาง…",
+  switchingCamera: "กล้องนี้ไม่พร้อมใช้งาน กำลังลองกล้องใกล้เคียงตัวถัดไป…",
   alertPlace: "🔔 แจ้งเตือนเมื่อรถถึงสถานที่",
   bmaHelpTitle: "เปิดกล้องไม่ได้ใช่หรือไม่?", bmaHelpText: "ให้เปิดหน้ากล้อง BMA โดยตรงก่อน อนุญาตหรือเริ่มฟีดกล้องบนเว็บไซต์นั้น จากนั้นกลับมายัง Bus-287 แล้วทดสอบอีกครั้ง",
   openBmaAgain: "เปิดหน้ากล้อง BMA อีกครั้ง ↗", continueWithoutCamera: "เข้าใจแล้ว — ใช้งานต่อโดยไม่ใช้กล้อง",
@@ -185,6 +187,7 @@ const state = {
   pendingCameraId: null,
   cameraHandoffTimer: null,
   cameraIndexOffset: 0,
+  manualCameraId: null,
   follow: false,
   alertDraft: null,      // {lat, lon, radiusM}
   tg: { configured: false, connected: false },
@@ -993,6 +996,7 @@ async function selectBus(busId, options = {}) {
     state.activeCameraId = null;
     state.pendingCameraId = null;
     state.cameraIndexOffset = 0;
+    state.manualCameraId = null;
   }
   if (changedBus || options.userAction) $("#sheet").classList.remove("collapsed");
   state.selectedBus = busId;
@@ -1015,23 +1019,39 @@ async function selectBus(busId, options = {}) {
 
   let camHTML = "";
   let camId = null;
+  let cameraCandidates = [];
   let cameraCandidateCount = 0;
   let busCameraBounds = null;
   try {
     const d = await api(`/api/bus?trip=${encodeURIComponent(state.tripId)}&bus=${encodeURIComponent(plate)}`);
     if (selectionVersion !== state.selectionVersion || state.selectedBus !== busId) return;
-    const cameraCandidates = d.cameraCandidates || [];
+    cameraCandidates = d.cameraCandidates || [];
     cameraCandidateCount = cameraCandidates.length;
+    if (state.manualCameraId && !cameraCandidates.some((candidate) =>
+      String(candidate.camera?.id) === String(state.manualCameraId))) {
+      // The selected camera may leave the nearby candidate window as the bus
+      // moves. Return to the automatic suggestion rather than showing stale
+      // location data for an unavailable manual choice.
+      state.manualCameraId = null;
+      state.cameraIndexOffset = 0;
+    }
     if (cameraCandidates.length) {
       state.cameraIndexOffset = Math.min(state.cameraIndexOffset, cameraCandidates.length - 1);
+      if (state.manualCameraId) {
+        const manualIndex = cameraCandidates.findIndex((candidate) =>
+          String(candidate.camera?.id) === String(state.manualCameraId));
+        if (manualIndex >= 0) state.cameraIndexOffset = manualIndex;
+      }
       const chosen = cameraCandidates[state.cameraIndexOffset];
       d.nearestCamera = chosen.camera;
       d.cameraDistanceM = chosen.distanceM;
-      if (state.cameraIndexOffset > 0) d.cameraSelection = "next";
+      d.cameraOnRoute = chosen.onRoute !== false;
+      if (state.manualCameraId) d.cameraSelection = "manual";
+      else if (state.cameraIndexOffset > 0) d.cameraSelection = "next";
     }
     if (d.nearestCamera) {
       const nextCameraId = String(d.nearestCamera.id);
-      if (state.activeCameraBus === busId && state.activeCameraId && state.activeCameraId !== nextCameraId) {
+      if (!state.manualCameraId && state.activeCameraBus === busId && state.activeCameraId && state.activeCameraId !== nextCameraId) {
         // Keep the just-passed camera live for five seconds. Repeated refreshes
         // must not restart the grace period.
         if (state.pendingCameraId !== nextCameraId) {
@@ -1068,13 +1088,31 @@ async function selectBus(busId, options = {}) {
           color: "#e8b25a", weight: 2, opacity: .85, dashArray: "6 7",
         }).addTo(layers.camera);
       }
+      const cameraPickerHTML = cameraCandidates.length > 1 ? `
+        <label class="camera-picker" for="camera-select">
+          <span>${t("cameraChoice")}</span>
+          <select id="camera-select">
+            ${cameraCandidates.map((candidate, index) => {
+              const candidateCamera = candidate.camera || {};
+              const candidateName = candidateCamera.name_th || candidateCamera.name_en || candidateCamera.id;
+              const routeLabel = candidate.onRoute === false ? t("notOnRoute") : t("onRoute");
+              const optionText = `${candidateName} · ${candidateCamera.id} · ${Math.round(Number(candidate.distanceM) || 0)} m · ${routeLabel}`;
+              return `<option value="${index}" ${index === state.cameraIndexOffset ? "selected" : ""}>${esc(optionText)}</option>`;
+            }).join("")}
+          </select>
+        </label>
+        <small class="camera-picker-help">${t("cameraChoiceHelp")}</small>` : "";
+      const cameraTitle = d.cameraSelection === "manual" ? t("selectedCamera")
+        : d.cameraSelection === "nearest" ? t("nearestCamera") : t("upcomingCamera");
+      const routeLabel = d.cameraOnRoute ? t("onRoute") : t("notOnRoute");
       camHTML = `
         <div id="camera-section" data-camera-id="${esc(camId)}">
-        <h2>🎥 ${d.cameraSelection === "nearest" ? t("nearestCamera") : t("upcomingCamera")} <small>· ${Math.round(d.cameraDistanceM)} ${t("fromBus")} · ${d.cameraOnRoute ? t("onRoute") : t("nearRoute")}</small></h2>
+        <h2>🎥 ${cameraTitle} <small>· ${Math.round(d.cameraDistanceM)} ${t("fromBus")} · ${routeLabel}</small></h2>
         <div class="camera-link-info">
           <b>${esc(d.nearestCamera.name_th || d.nearestCamera.name_en || d.nearestCamera.id)}</b>
           <small>${t("cameraId")}: ${esc(d.nearestCamera.id)}</small>
         </div>
+        ${cameraPickerHTML}
         <small class="cam-status" id="cam-status">${t("cameraChecking")}</small>
         <a id="camera-link" class="btn btn-ghost btn-direct-camera"
           data-href="${esc(d.nearestCamera.feed_url)}" aria-disabled="true" target="_blank" rel="noopener">${t("openCamera")}</a>
@@ -1140,6 +1178,20 @@ async function selectBus(busId, options = {}) {
   detail.querySelectorAll("[data-switch-bus]").forEach((button) => {
     button.onclick = () => selectBus(button.dataset.switchBus, { userAction: true });
   });
+  const chooseCamera = (index) => {
+    const candidate = cameraCandidates[index];
+    if (!candidate?.camera?.id) return;
+    state.cameraIndexOffset = index;
+    state.manualCameraId = String(candidate.camera.id);
+    clearTimeout(state.cameraHandoffTimer);
+    state.cameraHandoffTimer = null;
+    state.pendingCameraId = null;
+    state.activeCameraId = null;
+    selectBus(busId);
+  };
+  $("#camera-select")?.addEventListener("change", (event) => {
+    chooseCamera(Number(event.target.value));
+  });
   const showPins = () => {
     if (!busCameraBounds) return;
     const desktop = window.matchMedia("(min-width: 760px)").matches;
@@ -1158,14 +1210,10 @@ async function selectBus(busId, options = {}) {
   };
   $("#btn-map-pins")?.addEventListener("click", showPins);
   $("#btn-prev-camera")?.addEventListener("click", () => {
-    state.cameraIndexOffset = Math.max(0, state.cameraIndexOffset - 1);
-    state.activeCameraId = null;
-    selectBus(busId);
+    chooseCamera(Math.max(0, state.cameraIndexOffset - 1));
   });
   $("#btn-next-camera")?.addEventListener("click", () => {
-    state.cameraIndexOffset++;
-    state.activeCameraId = null;
-    selectBus(busId);
+    chooseCamera(Math.min(cameraCandidateCount - 1, state.cameraIndexOffset + 1));
   });
   if (busCameraBounds && window.matchMedia("(min-width: 760px)").matches) showPins();
   if ((changedBus || options.userAction) && camId) {
@@ -1189,7 +1237,7 @@ async function selectBus(busId, options = {}) {
         if (cameraStatus) cameraStatus.textContent = t("cameraReadyExternal");
         return;
       }
-      if (state.cameraIndexOffset < cameraCandidateCount - 1) {
+      if (!state.manualCameraId && state.cameraIndexOffset < cameraCandidateCount - 1) {
         state.cameraIndexOffset++;
         state.activeCameraId = null;
         toast(t("switchingCamera"));
@@ -1361,6 +1409,7 @@ function clearTripLayers() {
   state.activeCameraId = null;
   state.pendingCameraId = null;
   state.cameraIndexOffset = 0;
+  state.manualCameraId = null;
   state.visibleBusIds = null;
   state.busMotion = {};
   layers.route.clearLayers();

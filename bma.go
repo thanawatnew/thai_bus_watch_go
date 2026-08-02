@@ -284,15 +284,7 @@ func UpcomingCamera(busLat, busLon, heading float64, cameras []Camera) (Camera, 
 	var best Camera
 	for _, cam := range cameras {
 		d := HaversineMeters(busLat, busLon, cam.Lat, cam.Lon)
-		if d > 5000 {
-			continue
-		}
-		bearing := InitialBearing(busLat, busLon, cam.Lat, cam.Lon)
-		delta := math.Abs(bearing - heading)
-		if delta > 180 {
-			delta = 360 - delta
-		}
-		if (d <= 2 || delta <= 70) && d < bestDistance {
+		if cameraIsAhead(busLat, busLon, heading, cam, d) && d < bestDistance {
 			best, bestDistance = cam, d
 		}
 	}
@@ -300,6 +292,18 @@ func UpcomingCamera(busLat, busLon, heading float64, cameras []Camera) (Camera, 
 		return Camera{}, 0, false
 	}
 	return best, bestDistance, true
+}
+
+func cameraIsAhead(busLat, busLon, heading float64, cam Camera, distanceM float64) bool {
+	if math.IsNaN(heading) || distanceM > 5000 {
+		return false
+	}
+	bearing := InitialBearing(busLat, busLon, cam.Lat, cam.Lon)
+	delta := math.Abs(bearing - math.Mod(heading+360, 360))
+	if delta > 180 {
+		delta = 360 - delta
+	}
+	return distanceM <= 2 || delta <= 70
 }
 
 // CamerasNearShape removes cameras that the route does not actually pass.

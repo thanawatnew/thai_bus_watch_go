@@ -211,6 +211,16 @@ input[type=text]:focus { border-color: #2f6fed; }
 }
 .camera-available span { color: #c9b98f; font-size: 12px; }
 #camera-section { scroll-margin-top: 8px; }
+.camera-picker {
+  display: flex; flex-direction: column; gap: 6px; margin: 10px 0 3px;
+  color: #d7dde3; font-size: 13px; font-weight: 700;
+}
+.camera-picker select {
+  width: 100%; min-height: 44px; padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,.14); border-radius: 10px;
+  background: #22272e; color: #e8eaed; font: inherit; font-size: 13px;
+}
+.camera-picker-help { display: block; line-height: 1.4; }
 
 .detail-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 14px; margin: 10px 0; }
 .detail-grid dt { color: #8a939d; }

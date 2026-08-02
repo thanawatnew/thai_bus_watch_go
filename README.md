@@ -77,7 +77,7 @@ Prints the bus position and the nearest BMA traffic camera once, as text + JSON.
 |---|---|
 | `GET /api/nearby?lat=&lon=` | Nearby stops with passing routes (trip IDs) |
 | `GET /api/trip/{id}` | Route shape, stops, and live GPS of all buses |
-| `GET /api/bus?trip=&bus=` | One bus + nearest BMA traffic camera |
+| `GET /api/bus?trip=&bus=` | One live bus + nearby BMA cameras; route matching is only a hint and the UI allows manual camera selection |
 | `GET /api/camera/{id}/frame` | Live JPEG frame from a BMA traffic camera (HTTPS proxy) |
 | `POST /api/watch` | Start watching: `{tripId, busId, alert?: {lat, lon, radiusM, label}}` |
 | `GET /api/watch` / `DELETE /api/watch/{id}` | List / stop watches |
